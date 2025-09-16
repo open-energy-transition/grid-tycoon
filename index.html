@@ -4,504 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Grid Tycoon - Master India's Power Grid</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(45deg, #1e3c72 0%, #2a5298 50%, #f093fb 100%);
-            background-size: 400% 400%;
-            animation: gradientShift 15s ease infinite;
-            min-height: 100vh;
-            color: #333;
-            overflow-x: auto;
-        }
-
-        @keyframes gradientShift {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-        
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .game-header {
-            text-align: center;
-            margin-bottom: 40px;
-            animation: slideDown 1s ease-out;
-        }
-
-        @keyframes slideDown {
-            from { transform: translateY(-50px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-
-        .game-title {
-            font-size: 4rem;
-            font-weight: bold;
-            background: linear-gradient(45deg, #ffd700, #ffed4e, #ff6b35);
-            background-clip: text;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-            margin-bottom: 10px;
-            animation: pulse 2s ease-in-out infinite alternate;
-        }
-
-        @keyframes pulse {
-            from { transform: scale(1); }
-            to { transform: scale(1.05); }
-        }
-
-        .game-subtitle {
-            font-size: 1.5rem;
-            color: white;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-            margin-bottom: 30px;
-        }
-
-        .game-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 30px;
-            margin: 20px 0;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.1), 0 5px 15px rgba(0,0,0,0.07);
-            border: 1px solid rgba(255,255,255,0.2);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .game-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.15), 0 10px 20px rgba(0,0,0,0.1);
-        }
-
-        .rules-section {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 15px;
-            padding: 25px;
-            margin: 20px 0;
-            animation: slideUp 1s ease-out 0.3s both;
-        }
-
-        @keyframes slideUp {
-            from { transform: translateY(50px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-
-        .rules-title {
-            font-size: 1.8rem;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .rules-list {
-            list-style: none;
-            padding: 0;
-        }
-
-        .rules-list li {
-            background: rgba(255,255,255,0.1);
-            margin: 10px 0;
-            padding: 15px;
-            border-radius: 10px;
-            border-left: 4px solid #ffd700;
-            transition: transform 0.2s ease;
-        }
-
-        .rules-list li:hover {
-            transform: translateX(5px);
-            background: rgba(255,255,255,0.15);
-        }
-
-        .btn {
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            color: white;
-            border: none;
-            padding: 18px 35px;
-            border-radius: 15px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 600;
-            margin: 10px;
-            transition: all 0.3s ease;
-            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s ease;
-        }
-
-        .btn:hover::before {
-            left: 100%;
-        }
-
-        .btn:hover {
-            transform: translateY(-3px) scale(1.02);
-            box-shadow: 0 15px 25px rgba(0,0,0,0.2);
-        }
-
-        .btn:disabled {
-            background: linear-gradient(45deg, #bdc3c7, #95a5a6);
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-
-        .btn-primary { background: linear-gradient(45deg, #3498db, #2980b9); }
-        .btn-success { background: linear-gradient(45deg, #27ae60, #2ecc71); }
-        .btn-danger { background: linear-gradient(45deg, #e74c3c, #c0392b); }
-        .btn-warning { background: linear-gradient(45deg, #f39c12, #e67e22); }
-
-        .init-section {
-            text-align: center;
-            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
-            color: #2c3e50;
-            animation: bounceIn 1s ease-out 0.5s both;
-        }
-
-        @keyframes bounceIn {
-            from { transform: scale(0.3); opacity: 0; }
-            50% { transform: scale(1.05); }
-            to { transform: scale(1); opacity: 1; }
-        }
-
-        .game-section {
-            animation: fadeIn 1s ease-out;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        .controls {
-            text-align: center;
-            margin: 30px 0;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 15px;
-        }
-
-        .current-state {
-            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-            border: 3px solid #27ae60;
-            text-align: center;
-            animation: slideIn 0.5s ease-out;
-        }
-
-        @keyframes slideIn {
-            from { transform: translateX(-100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-
-        .state-name {
-            font-size: 2.5rem;
-            font-weight: bold;
-            color: #2c3e50;
-            margin: 15px 0;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
-        }
-
-        .state-details {
-            font-size: 1.1rem;
-            color: #34495e;
-            line-height: 1.6;
-        }
-
-        .progress-section {
-            margin: 30px 0;
-        }
-
-        .progress-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .progress-title {
-            font-size: 1.8rem;
-            color: #2c3e50;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .progress-stats {
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 25px;
-            font-weight: 600;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-
-        .progress-bar {
-            background: linear-gradient(45deg, #ecf0f1, #bdc3c7);
-            border-radius: 25px;
-            height: 35px;
-            overflow: hidden;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
-            position: relative;
-        }
-
-        .progress-fill {
-            background: linear-gradient(45deg, #27ae60, #2ecc71, #58d68d);
-            height: 100%;
-            transition: width 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-            font-size: 1.1rem;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .progress-fill::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-            animation: shimmer 2s infinite;
-        }
-
-        @keyframes shimmer {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
-        }
-
-        .states-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 20px;
-            margin-top: 25px;
-        }
-
-        .state-card {
-            padding: 20px;
-            border-radius: 15px;
-            text-align: center;
-            font-size: 16px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .state-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
-            transform: translateX(-100%);
-            transition: transform 0.6s ease;
-        }
-
-        .state-card:hover::before {
-            transform: translateX(100%);
-        }
-
-        .state-completed {
-            background: linear-gradient(135deg, #d5f4e6, #a8e6cf);
-            color: #27ae60;
-            border: 3px solid #27ae60;
-            box-shadow: 0 8px 25px rgba(39, 174, 96, 0.2);
-        }
-
-        .state-available {
-            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
-            color: #856404;
-            border: 3px solid #f39c12;
-            box-shadow: 0 8px 25px rgba(243, 156, 18, 0.2);
-        }
-
-        .state-current {
-            background: linear-gradient(135deg, #cce5ff, #74b9ff);
-            color: #0066cc;
-            border: 3px solid #007bff;
-            font-weight: bold;
-            box-shadow: 0 8px 25px rgba(0, 123, 255, 0.3);
-            animation: glow 2s ease-in-out infinite alternate;
-        }
-
-        @keyframes glow {
-            from { box-shadow: 0 8px 25px rgba(0, 123, 255, 0.3); }
-            to { box-shadow: 0 12px 35px rgba(0, 123, 255, 0.5); }
-        }
-
-        .state-card:hover {
-            transform: translateY(-5px) scale(1.02);
-        }
-
-        .status {
-            margin: 25px 0;
-            padding: 20px;
-            border-radius: 15px;
-            font-weight: 600;
-            font-size: 1.1rem;
-            animation: slideIn 0.5s ease-out;
-        }
-
-        .status-success {
-            background: linear-gradient(135deg, #d5f4e6, #a8e6cf);
-            color: #27ae60;
-            border: 3px solid #27ae60;
-        }
-
-        .status-error {
-            background: linear-gradient(135deg, #fdeaea, #fab1a0);
-            color: #e74c3c;
-            border: 3px solid #e74c3c;
-        }
-
-        .status-info {
-            background: linear-gradient(135deg, #e8f4f8, #81ecec);
-            color: #2980b9;
-            border: 3px solid #3498db;
-        }
-
-        .loading {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 5px solid rgba(52, 152, 219, 0.1);
-            border-top: 5px solid #3498db;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .info-section {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            margin-top: 40px;
-        }
-
-        .info-title {
-            font-size: 1.5rem;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .info-list {
-            list-style: none;
-            padding: 0;
-        }
-
-        .info-list li {
-            background: rgba(255,255,255,0.1);
-            margin: 10px 0;
-            padding: 15px;
-            border-radius: 10px;
-            border-left: 4px solid #ffd700;
-            transition: all 0.2s ease;
-        }
-
-        .info-list li:hover {
-            transform: translateX(5px);
-            background: rgba(255,255,255,0.15);
-        }
-
-        .footer {
-            text-align: center;
-            margin-top: 40px;
-            padding: 20px;
-            color: white;
-            background: rgba(0,0,0,0.1);
-            border-radius: 15px;
-            backdrop-filter: blur(10px);
-        }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .game-title {
-                font-size: 2.5rem;
-            }
-            
-            .state-name {
-                font-size: 2rem;
-            }
-            
-            .states-grid {
-                grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-                gap: 15px;
-            }
-            
-            .controls {
-                flex-direction: column;
-                align-items: center;
-            }
-            
-            .btn {
-                width: 80%;
-                max-width: 300px;
-            }
-        }
-
-        /* Power Grid Animation Effects */
-        .power-effect {
-            position: relative;
-            overflow: hidden;
-        }
-
-        .power-effect::after {
-            content: '⚡';
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            font-size: 1.5rem;
-            animation: electricPulse 1.5s infinite;
-        }
-
-        @keyframes electricPulse {
-            0%, 100% { opacity: 0.3; transform: scale(1); }
-            50% { opacity: 1; transform: scale(1.2); }
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
+    <meta name="description" content="Interactive game for mapping India's power infrastructure using OpenStreetMap and JOSM">
+    <meta name="keywords" content="OpenStreetMap, JOSM, power grid, India, mapping, game">
 </head>
 <body>
     <div class="container">
@@ -515,17 +20,25 @@
             <ul class="rules-list">
                 <li>🗺️ Map power infrastructure (≥50kV) across all Indian states and territories</li>
                 <li>🎲 Each state can only be conquered once - choose wisely!</li>
-                <li>📡 Data loads directly into JOSM for professional editing</li>
+                <li>📡 Data loads into JOSM for professional editing (manual links due to browser security)</li>
+                <li>📥 Alternative: Download OSM files directly if JOSM links don't work</li>
                 <li>🏆 Complete all regions to become the ultimate Grid Tycoon!</li>
             </ul>
         </div>
         
         <div id="initSection" class="game-card init-section">
             <h3>🚀 Initialize Power Grid Discovery</h3>
-            <p style="margin: 20px 0; font-size: 1.1rem;">Begin your journey by discovering all Indian states and territories from the OpenStreetMap network.</p>
+            <p style="margin: 20px 0; font-size: 1.1rem;">
+                Begin your journey by discovering all Indian states and territories. 
+                The system will try to fetch live data from OpenStreetMap, with embedded fallback data if needed.
+            </p>
             <button class="btn btn-warning power-effect" onclick="initializeStates()">
                 📡 Discover Territory Network
             </button>
+            
+            <div id="josmInstructions" class="josm-setup-info" style="display: none;">
+                <!-- JOSM instructions will be populated here -->
+            </div>
         </div>
         
         <div id="gameSection" class="game-section" style="display: none;">
@@ -534,14 +47,29 @@
                     <button class="btn btn-primary power-effect" id="drawBtn" onclick="drawRandomState()">
                         🎲 Select Random Territory
                     </button>
-                    <button class="btn btn-success" id="loadBtn" onclick="loadInJOSM()" disabled>
-                        📡 Deploy to JOSM Grid
+                    <button class="btn btn-success" id="loadBtn" onclick="showJOSMLink()" disabled>
+                        📡 Load into JOSM
+                    </button>
+                    <button class="btn btn-info" id="downloadBtn" onclick="generateDownloadLink()" disabled>
+                        📥 Download OSM Data
                     </button>
                     <button class="btn btn-danger" id="markCompleteBtn" onclick="markCurrentComplete()" disabled>
                         ✅ Mark Territory Complete
                     </button>
+                </div>
+                
+                <div class="secondary-controls">
                     <button class="btn btn-warning" onclick="resetGame()">
                         🔄 Reset Campaign
+                    </button>
+                    <button class="btn btn-secondary" onclick="saveGame()">
+                        💾 Save Progress
+                    </button>
+                    <button class="btn btn-secondary" onclick="loadGame()">
+                        📂 Load Progress
+                    </button>
+                    <button class="btn btn-secondary" onclick="showQueryInfo()">
+                        🔍 Query Details
                     </button>
                 </div>
                 
@@ -571,354 +99,111 @@
         
         <div id="statusDiv" class="status" style="display: none;"></div>
         
+        <!-- JOSM Modal -->
+        <div id="josmModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div id="josmModalContent">
+                    <!-- JOSM instructions and links will be populated here -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Info Modal -->
+        <div id="infoModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div id="infoModalContent">
+                    <!-- Query info will be populated here -->
+                </div>
+            </div>
+        </div>
+        
         <div class="game-card info-section">
-            <h3 class="info-title">⚙️ JOSM Configuration Guide</h3>
+            <h3 class="info-title">⚙️ JOSM Setup Guide</h3>
+            <div class="setup-warning">
+                <h4>🔒 Important: Browser Security Notice</h4>
+                <p>Due to HTTPS security restrictions on GitHub Pages, JOSM connections require manual clicking instead of automatic loading. This is normal and expected behavior.</p>
+            </div>
             <ul class="info-list">
-                <li>🔧 Enable JOSM Remote Control: Preferences → Remote Control → ✅ Enable remote control</li>
-                <li>🌐 Ensure port 8111 is active (default configuration)</li>
-                <li>💻 Keep JOSM running while operating Grid Tycoon</li>
-                <li>⚡ The system will deploy power infrastructure ≥50kV with administrative boundaries</li>
+                <li>🔧 <strong>Enable JOSM Remote Control:</strong> Preferences → Remote Control → ✅ Enable remote control</li>
+                <li>🌐 <strong>Port Configuration:</strong> Ensure port 8111 is active (default configuration)</li>
+                <li>💻 <strong>Keep JOSM Running:</strong> JOSM must be open while using Grid Tycoon</li>
+                <li>⚡ <strong>Data Coverage:</strong> Queries fetch power infrastructure ≥50kV with administrative boundaries</li>
+                <li>📥 <strong>Alternative Method:</strong> Use the Download button if JOSM links are blocked</li>
+                <li>🔥 <strong>Firewall:</strong> Ensure your firewall allows connections to localhost:8111</li>
             </ul>
         </div>
         
+        <div class="game-card troubleshooting-section">
+            <h3 class="info-title">🛠️ Troubleshooting</h3>
+            <ul class="info-list">
+                <li>
+                    <strong>JOSM Link Not Working?</strong>
+                    <ul>
+                        <li>Copy the link and paste it directly into your browser's address bar</li>
+                        <li>Check that JOSM is running with Remote Control enabled</li>
+                        <li>Try allowing mixed content for this site in browser settings</li>
+                        <li>Use the Download option as an alternative</li>
+                    </ul>
+                </li>
+                <li>
+                    <strong>No States Loading?</strong>
+                    <ul>
+                        <li>The system will automatically fall back to embedded data if the API fails</li>
+                        <li>Check your internet connection</li>
+                        <li>Try refreshing the page</li>
+                    </ul>
+                </li>
+                <li>
+                    <strong>Overpass Query Timeout?</strong>
+                    <ul>
+                        <li>Some queries may take time due to complex power infrastructure data</li>
+                        <li>Try the query again - different servers may respond faster</li>
+                        <li>Consider using a smaller state/territory first</li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+        
+        <div class="game-card technical-section">
+            <h3 class="info-title">🔧 Technical Details</h3>
+            <div class="tech-grid">
+                <div class="tech-item">
+                    <h4>🌐 Data Sources</h4>
+                    <ul>
+                        <li>Primary: Overpass API (live OSM data)</li>
+                        <li>Fallback: Embedded state data</li>
+                        <li>Multiple server redundancy</li>
+                    </ul>
+                </div>
+                <div class="tech-item">
+                    <h4>⚡ Infrastructure Types</h4>
+                    <ul>
+                        <li>Transmission lines (≥50kV)</li>
+                        <li>Substations & switching stations</li>
+                        <li>Power plants & generators</li>
+                        <li>Transformers & grid control</li>
+                        <li>Construction projects</li>
+                    </ul>
+                </div>
+                <div class="tech-item">
+                    <h4>🔗 Integration</h4>
+                    <ul>
+                        <li>JOSM Remote Control API</li>
+                        <li>Direct OSM file downloads</li>
+                        <li>XML format for JOSM compatibility</li>
+                        <li>Administrative boundary context</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
         <footer class="footer">
-            <p>Grid Tycoon v1.0 | Powered by OpenStreetMap & JOSM | Built for Power Infrastructure Mapping</p>
+            <p>Grid Tycoon v2.0 | Powered by OpenStreetMap & JOSM | Built for Power Infrastructure Mapping</p>
+            <p><small>🔒 GitHub Pages Compatible • 📡 JOSM Integration • 🗺️ OpenStreetMap Data</small></p>
         </footer>
     </div>
 
-    <script>
-        class GridTycoon {
-            constructor() {
-                this.indianStates = [];
-                this.completedStates = new Set();
-                this.availableStates = [];
-                this.currentState = null;
-                this.isInitialized = false;
-            }
-
-            async initializeStates() {
-                this.showStatus('info', 'Discovering power grid territories across India...', true);
-                
-                try {
-                    const statesList = await this.fetchIndianStates();
-                    this.indianStates = statesList;
-                    this.availableStates = [...statesList];
-                    this.isInitialized = true;
-                    
-                    this.showStatus('success', `⚡ Grid discovery complete! Found ${statesList.length} territories ready for power infrastructure mapping.`);
-                    
-                    // Transition to game mode
-                    document.getElementById('initSection').style.display = 'none';
-                    document.getElementById('gameSection').style.display = 'block';
-                    
-                    this.renderStatesGrid();
-                    this.updateProgress();
-                    
-                } catch (error) {
-                    this.showStatus('error', `❌ Grid discovery failed: ${error.message}. Check your network connection and try again.`);
-                }
-            }
-
-            async fetchIndianStates() {
-                const query = `[out:json][timeout:600];
-                
-area["name:en"="India"]["admin_level"="2"]->.india;
-relation["boundary"="administrative"]["admin_level"="4"](area.india);
-out tags;`;
-
-                const encodedQuery = encodeURIComponent(query);
-                const url = `https://overpass-api.de/api/interpreter?data=${encodedQuery}`;
-                
-                const response = await fetch(url);
-                if (!response.ok) {
-                    throw new Error(`Network error: ${response.status} ${response.statusText}`);
-                }
-                
-                const data = await response.json();
-                
-                const states = data.elements
-                    .filter(element => element.tags && element.tags.name)
-                    .map(element => ({
-                        name: element.tags.name,
-                        id: element.id,
-                        nameEn: element.tags['name:en'] || element.tags.name,
-                        isoCode: element.tags['ISO3166-2'] || null,
-                        wikidata: element.tags.wikidata || null
-                    }))
-                    .sort((a, b) => a.name.localeCompare(b.name));
-                
-                if (states.length === 0) {
-                    throw new Error('No territories discovered in the power grid network');
-                }
-                
-                return states;
-            }
-
-            drawRandomState() {
-                if (!this.isInitialized) {
-                    this.showStatus('error', 'Please initialize the power grid network first!');
-                    return;
-                }
-
-                if (this.availableStates.length === 0) {
-                    this.showStatus('success', '🏆 LEGENDARY ACHIEVEMENT! All territories conquered! You are the ultimate Grid Tycoon!');
-                    this.celebrateCompletion();
-                    return;
-                }
-
-                const randomIndex = Math.floor(Math.random() * this.availableStates.length);
-                this.currentState = this.availableStates[randomIndex];
-                
-                this.showCurrentState();
-                document.getElementById('loadBtn').disabled = false;
-                document.getElementById('markCompleteBtn').disabled = false;
-                
-                this.renderStatesGrid();
-                this.showStatus('info', `🎯 Territory selected: ${this.currentState.name}. Ready for power grid deployment!`);
-            }
-
-            showCurrentState() {
-                const currentStateDiv = document.getElementById('currentState');
-                const stateNameDiv = document.getElementById('currentStateName');
-                const stateDetailsDiv = document.getElementById('stateDetails');
-                
-                currentStateDiv.style.display = 'block';
-                stateNameDiv.textContent = this.currentState.name;
-                
-                const isoInfo = this.currentState.isoCode ? 
-                    `<p><strong>🏷️ Territory Code:</strong> ${this.currentState.isoCode}</p>` : '';
-                
-                stateDetailsDiv.innerHTML = `
-                    <p><strong>🆔 Grid ID:</strong> ${this.currentState.id}</p>
-                    ${isoInfo}
-                    <p><strong>⚡ Mission:</strong> Deploy high-voltage infrastructure (≥50kV)</p>
-                    <p><strong>🗺️ Status:</strong> Ready for JOSM deployment</p>
-                `;
-            }
-
-            generatePowerQuery(stateRelationId) {
-                return `[out:xml][timeout:3000];
-
-// Acquire territory boundary and infrastructure
-relation(${stateRelationId})->.territory;
-(.territory; >;);
-.territory map_to_area ->.gridArea;
-
-// Deploy high-voltage power infrastructure (≥50kV)
-(
-  // Power transmission towers and poles
-  node["power"="tower"](area.gridArea);
-  node["power"="pole"](area.gridArea);
-  
-  // High-voltage transmission lines (≥50kV)
-  way["power"="line"]["voltage"~"^([5-9][0-9]{4}|[1-9][0-9]{5,})$"](area.gridArea);
-  way["power"="line"]["voltage"~"^(50000|5[0-9]{4}|[6-9][0-9]{4}|[1-9][0-9]{5,})$"](area.gridArea);
-  
-  // Unspecified voltage lines (manual assessment required)
-  way["power"="line"][!"voltage"](area.gridArea);
-  
-  // Power cables and underground infrastructure
-  way["power"="cable"](area.gridArea);
-  
-  // High-voltage support infrastructure
-  way["power"="line"]["voltage"~"^([5-9][0-9]{4}|[1-9][0-9]{5,})$"](area.gridArea) -> .hvLines;
-  node(w.hvLines)["power"="pole"];
-  
-  // Electrical substations and switching stations
-  node["power"="substation"](area.gridArea);
-  way["power"="substation"](area.gridArea);
-  relation["power"="substation"](area.gridArea);
-  
-  // Power generation facilities
-  node["power"="plant"](area.gridArea);
-  way["power"="plant"](area.gridArea);
-  relation["power"="plant"](area.gridArea);
-  
-  node["power"="generator"](area.gridArea);
-  way["power"="generator"](area.gridArea);
-  relation["power"="generator"](area.gridArea);
-  
-  // Transformation and distribution equipment
-  node["power"="transformer"](area.gridArea);
-  way["power"="transformer"](area.gridArea);
-  relation["power"="transformer"](area.gridArea);
-  
-  // Grid control and switching infrastructure
-  node["power"="portal"](area.gridArea);
-  node["power"="switch"](area.gridArea);
-  
-  // Under construction power infrastructure
-  node["construction:power"](area.gridArea);
-  way["construction:power"](area.gridArea);
-  relation["construction:power"](area.gridArea);
-  
-  // Territory boundary for context
-  .territory;
-);
-
-out meta;
->;
-out meta;`;
-            }
-
-            async loadInJOSM() {
-                if (!this.currentState) {
-                    this.showStatus('error', 'No territory selected! Please draw a random territory first.');
-                    return;
-                }
-
-                const query = this.generatePowerQuery(this.currentState.id);
-                const encodedQuery = encodeURIComponent(query);
-                const josmUrl = `http://localhost:8111/import?url=https://overpass-api.de/api/interpreter?data=${encodedQuery}`;
-                
-                this.showStatus('info', `Deploying power grid data for ${this.currentState.name}...`, true);
-
-                try {
-                    await fetch(josmUrl, { method: 'GET', mode: 'no-cors' });
-                    this.showStatus('success', `⚡ Power grid deployed successfully! Territory: ${this.currentState.name} is now active in JOSM. Begin your infrastructure mapping mission!`);
-                } catch (error) {
-                    this.showStatus('error', '❌ JOSM deployment failed! Ensure JOSM is running with Remote Control enabled on port 8111. Check your Grid Tycoon configuration.');
-                }
-            }
-
-            markCurrentComplete() {
-                if (!this.currentState) return;
-
-                this.completedStates.add(this.currentState.id);
-                this.availableStates = this.availableStates.filter(state => state.id !== this.currentState.id);
-                
-                const completedTerritory = this.currentState.name;
-                this.currentState = null;
-
-                document.getElementById('currentState').style.display = 'none';
-                document.getElementById('loadBtn').disabled = true;
-                document.getElementById('markCompleteBtn').disabled = true;
-
-                this.renderStatesGrid();
-                this.updateProgress();
-
-                if (this.availableStates.length === 0) {
-                    this.showStatus('success', '🏆 ULTIMATE VICTORY! All territories conquered! You are the supreme Grid Tycoon of India!');
-                    document.getElementById('drawBtn').disabled = true;
-                    this.celebrateCompletion();
-                } else {
-                    this.showStatus('success', `✅ Territory conquered! ${completedTerritory} power grid mapping complete. ${this.availableStates.length} territories remaining.`);
-                }
-            }
-
-            celebrateCompletion() {
-                // Add celebration effects
-                document.body.style.animation = 'celebration 2s ease-in-out infinite';
-                
-                // Add celebration CSS if not already present
-                if (!document.getElementById('celebration-styles')) {
-                    const style = document.createElement('style');
-                    style.id = 'celebration-styles';
-                    style.textContent = `
-                        @keyframes celebration {
-                            0%, 100% { transform: scale(1); }
-                            50% { transform: scale(1.02); }
-                        }
-                    `;
-                    document.head.appendChild(style);
-                }
-            }
-
-            renderStatesGrid() {
-                const grid = document.getElementById('statesGrid');
-                grid.innerHTML = '';
-
-                if (this.indianStates.length === 0) return;
-
-                this.indianStates.forEach(state => {
-                    const card = document.createElement('div');
-                    card.className = 'state-card';
-                    
-                    if (this.completedStates.has(state.id)) {
-                        card.classList.add('state-completed');
-                        card.innerHTML = `<strong>${state.name}</strong><br/>⚡ CONQUERED ⚡`;
-                    } else if (this.currentState && this.currentState.id === state.id) {
-                        card.classList.add('state-current');
-                        card.innerHTML = `<strong>${state.name}</strong><br/>🎯 ACTIVE TARGET 🎯`;
-                    } else {
-                        card.classList.add('state-available');
-                        card.innerHTML = `<strong>${state.name}</strong><br/>🗺️ Available Territory`;
-                    }
-
-                    grid.appendChild(card);
-                });
-            }
-
-            updateProgress() {
-                const completed = this.completedStates.size;
-                const total = this.indianStates.length;
-                const percentage = total > 0 ? (completed / total) * 100 : 0;
-
-                document.getElementById('progressFill').style.width = `${percentage}%`;
-                document.getElementById('progressText').textContent = 
-                    percentage === 100 ? 'GRID MASTER ACHIEVED!' : 
-                    percentage === 0 ? 'Grid Tycoon Campaign Ready' : 
-                    `${Math.round(percentage)}% Territory Conquered`;
-                
-                document.getElementById('progressStats').textContent = `${completed}/${total} Territories`;
-            }
-
-            resetGame() {
-                if (confirm('⚠️ Reset your Grid Tycoon campaign? All conquered territories will be lost!')) {
-                    this.completedStates.clear();
-                    this.availableStates = [...this.indianStates];
-                    this.currentState = null;
-                    
-                    document.getElementById('currentState').style.display = 'none';
-                    document.getElementById('loadBtn').disabled = true;
-                    document.getElementById('markCompleteBtn').disabled = true;
-                    document.getElementById('drawBtn').disabled = false;
-                    document.body.style.animation = '';
-                    
-                    this.renderStatesGrid();
-                    this.updateProgress();
-                    this.hideStatus();
-                    
-                    this.showStatus('info', '🔄 Grid Tycoon campaign reset! Ready to conquer India\'s power infrastructure again.');
-                }
-            }
-
-            showStatus(type, message, loading = false) {
-                const statusDiv = document.getElementById('statusDiv');
-                statusDiv.style.display = 'block';
-                statusDiv.className = `status status-${type}`;
-                
-                if (loading) {
-                    statusDiv.innerHTML = `
-                        <div class="loading">
-                            <div class="spinner"></div>
-                            <div>${message}</div>
-                        </div>
-                    `;
-                } else {
-                    statusDiv.textContent = message;
-                }
-
-                // Auto-hide success/info messages after 5 seconds
-                if (type === 'success' || type === 'info') {
-                    setTimeout(() => this.hideStatus(), 5000);
-                }
-            }
-
-            hideStatus() {
-                document.getElementById('statusDiv').style.display = 'none';
-            }
-        }
-
-        // Initialize Grid Tycoon Game
-        const game = new GridTycoon();
-
-        // Global functions for HTML onclick events
-        function initializeStates() { game.initializeStates(); }
-        function drawRandomState() { game.drawRandomState(); }
-        function loadInJOSM() { game.loadInJOSM(); }
-        function markCurrentComplete() { game.markCurrentComplete(); }
-        function resetGame() { game.resetGame(); }
-    </script>
+    <script src="overpass.js"></script>
+    <script src="game.js"></script>
 </body>
 </html>
