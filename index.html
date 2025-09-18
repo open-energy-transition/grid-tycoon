@@ -4,9 +4,349 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Grid Tycoon - Master India's Power Grid</title>
-    <link rel="stylesheet" href="styles.css">
     <meta name="description" content="Interactive game for mapping India's power infrastructure using OpenStreetMap and JOSM">
     <meta name="keywords" content="OpenStreetMap, JOSM, power grid, India, mapping, game">
+    <style>
+        /* Core styles from styles.css */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(45deg, #1e3c72 0%, #2a5298 50%, #f093fb 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            min-height: 100vh;
+            color: #333;
+            overflow-x: auto;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .game-header {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: slideDown 1s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .game-title {
+            font-size: 4rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, #ffd700, #ffed4e, #ff6b35);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            margin-bottom: 10px;
+            animation: pulse 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.05); }
+        }
+
+        .game-subtitle {
+            font-size: 1.5rem;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            margin-bottom: 30px;
+        }
+
+        .game-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 20px 0;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1), 0 5px 15px rgba(0,0,0,0.07);
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .game-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15), 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 18px 35px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 15px 25px rgba(0,0,0,0.2);
+        }
+
+        .btn:disabled {
+            background: linear-gradient(45deg, #bdc3c7, #95a5a6);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .btn-primary { background: linear-gradient(45deg, #3498db, #2980b9); }
+        .btn-success { background: linear-gradient(45deg, #27ae60, #2ecc71); }
+        .btn-danger { background: linear-gradient(45deg, #e74c3c, #c0392b); }
+        .btn-warning { background: linear-gradient(45deg, #f39c12, #e67e22); }
+        .btn-info { background: linear-gradient(45deg, #17a2b8, #138496); }
+        .btn-secondary { background: linear-gradient(45deg, #6c757d, #5a6268); }
+
+        .form-input {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .status {
+            margin: 25px 0;
+            padding: 20px;
+            border-radius: 15px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .status-success {
+            background: linear-gradient(135deg, #d5f4e6, #a8e6cf);
+            color: #27ae60;
+            border: 3px solid #27ae60;
+        }
+
+        .status-error {
+            background: linear-gradient(135deg, #fdeaea, #fab1a0);
+            color: #e74c3c;
+            border: 3px solid #e74c3c;
+        }
+
+        .status-info {
+            background: linear-gradient(135deg, #e8f4f8, #81ecec);
+            color: #2980b9;
+            border: 3px solid #3498db;
+        }
+
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(52, 152, 219, 0.1);
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Coordinator Dashboard Styles */
+        .coordinator-dashboard {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 20px;
+            padding: 30px;
+        }
+
+        .session-info {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+
+        .coordinator-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .teams-overview {
+            margin: 30px 0;
+        }
+
+        .teams-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .team-card {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+
+        .team-color-0 { border-color: #ff6b6b; }
+        .team-color-1 { border-color: #4ecdc4; }
+        .team-color-2 { border-color: #45b7d1; }
+        .team-color-3 { border-color: #96ceb4; }
+        .team-color-4 { border-color: #ffeaa7; }
+        .team-color-5 { border-color: #dda0dd; }
+
+        .leaderboard-section {
+            margin: 30px 0;
+        }
+
+        .leaderboard {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 20px;
+        }
+
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            margin: 10px 0;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+        }
+
+        .rank-1 { background: linear-gradient(135deg, #ffd700, #ffed4e); color: #333; }
+        .rank-2 { background: linear-gradient(135deg, #c0c0c0, #e5e5e5); color: #333; }
+        .rank-3 { background: linear-gradient(135deg, #cd7f32, #daa520); color: white; }
+
+        .participants-list {
+            max-height: 400px;
+            overflow-y: auto;
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 20px;
+        }
+
+        .participant-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+        }
+
+        .modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.6);
+            backdrop-filter: blur(5px);
+            animation: modalFadeIn 0.3s ease-out;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            position: relative;
+            background: rgba(255, 255, 255, 0.98);
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+            from { transform: translateY(-50px) scale(0.95); opacity: 0; }
+            to { transform: translateY(0) scale(1); opacity: 1; }
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            color: white;
+            background: rgba(0,0,0,0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        @media (max-width: 768px) {
+            .game-title {
+                font-size: 2.5rem;
+            }
+            
+            .coordinator-actions {
+                grid-template-columns: 1fr;
+            }
+            
+            .teams-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .modal-content {
+                width: 95%;
+                margin: 2% auto;
+                padding: 20px;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -15,36 +355,39 @@
             <p class="game-subtitle">Master India's Power Infrastructure Network</p>
         </header>
         
-        <div class="rules-section">
-            <h2 class="rules-title">🎮 How to Play</h2>
-            <ul class="rules-list">
-                <li>🗺️ Map power infrastructure (≥50kV) across all Indian states and territories</li>
-                <li>🎲 Each state can only be conquered once - choose wisely!</li>
-                <li>📡 Data loads into JOSM for professional editing (manual links due to browser security)</li>
-                <li>📥 Alternative: Download OSM files directly if JOSM links don't work</li>
-                <li>🏆 Complete all regions to become the ultimate Grid Tycoon!</li>
-            </ul>
-        </div>
-        
-        <div id="initSection" class="game-card init-section">
-            <h3>🚀 Initialize Power Grid Discovery</h3>
+        <!-- Registration Section -->
+        <div id="registrationSection" class="game-card">
+            <h3>👥 Join Mapping Session</h3>
             <p style="margin: 20px 0; font-size: 1.1rem;">
-                Begin your journey by discovering all Indian states and territories. 
-                The system will try to fetch live data from OpenStreetMap, with embedded fallback data if needed.
+                Enter your details to check team assignment or register for a new session.
+                <br><strong>Coordinators:</strong> Use session ID with "COORD" or "ADMIN" for coordinator access.
             </p>
-            <button class="btn btn-warning power-effect" onclick="initializeStates()">
-                📡 Discover Territory Network
-            </button>
             
-            <div id="josmInstructions" class="josm-setup-info" style="display: none;">
-                <!-- JOSM instructions will be populated here -->
+            <div class="registration-form">
+                <input type="text" id="firstNameInput" class="form-input" placeholder="First Name" required>
+                <input type="text" id="osmUsernameInput" class="form-input" placeholder="OSM Username" required>
+                <input type="text" id="sessionIdInput" class="form-input" placeholder="Session ID (e.g., 12345 or 12345-COORD)" required>
+                <button class="btn btn-primary" onclick="checkUserStatus()">
+                    🔍 Check Status / Register
+                </button>
             </div>
         </div>
-        
+
+        <!-- Coordinator Dashboard Section -->
+        <div id="coordinatorSection" class="game-card" style="display: none;">
+            <div id="coordinatorDashboard"></div>
+        </div>
+
+        <!-- Team Section -->
+        <div id="teamSection" class="game-card" style="display: none;">
+            <div id="teamDisplay"></div>
+        </div>
+
+        <!-- Game Section -->
         <div id="gameSection" class="game-section" style="display: none;">
             <div class="game-card">
                 <div class="controls">
-                    <button class="btn btn-primary power-effect" id="drawBtn" onclick="drawRandomState()">
+                    <button class="btn btn-primary power-effect" id="drawBtn" onclick="drawRandomTerritory()">
                         🎲 Select Random Territory
                     </button>
                     <button class="btn btn-success" id="loadBtn" onclick="showJOSMLink()" disabled>
@@ -53,37 +396,34 @@
                     <button class="btn btn-info" id="downloadBtn" onclick="generateDownloadLink()" disabled>
                         📥 Download OSM Data
                     </button>
-                    <button class="btn btn-danger" id="markCompleteBtn" onclick="markCurrentComplete()" disabled>
+                    <button class="btn btn-danger" id="markCompleteBtn" onclick="markTerritoryComplete()" disabled>
                         ✅ Mark Territory Complete
                     </button>
                 </div>
                 
                 <div class="secondary-controls">
-                    <button class="btn btn-warning" onclick="resetGame()">
-                        🔄 Reset Campaign
+                    <button class="btn btn-secondary" onclick="refreshTeamStatus()">
+                        🔄 Refresh Status
                     </button>
-                    <button class="btn btn-secondary" onclick="saveGame()">
-                        💾 Save Progress
+                    <button class="btn btn-info" onclick="showTeamOverview()">
+                        👥 Team Overview
                     </button>
-                    <button class="btn btn-secondary" onclick="loadGame()">
-                        📂 Load Progress
-                    </button>
-                    <button class="btn btn-secondary" onclick="showQueryInfo()">
-                        🔍 Query Details
+                    <button class="btn btn-warning" onclick="logout()">
+                        🚪 Logout
                     </button>
                 </div>
                 
-                <div id="currentState" class="game-card current-state" style="display: none;">
+                <div id="currentTerritory" class="game-card current-state" style="display: none;">
                     <h2>🎯 Current Target Territory</h2>
-                    <div class="state-name" id="currentStateName"></div>
-                    <div class="state-details" id="stateDetails"></div>
+                    <div class="state-name" id="currentTerritoryName"></div>
+                    <div class="state-details" id="territoryDetails"></div>
                 </div>
             </div>
             
             <div class="game-card">
                 <div class="progress-section">
                     <div class="progress-header">
-                        <h3 class="progress-title">📊 Campaign Progress</h3>
+                        <h3 class="progress-title">📊 Team Progress</h3>
                         <div class="progress-stats" id="progressStats">0/0 Complete</div>
                     </div>
                     <div class="progress-bar">
@@ -93,7 +433,7 @@
                     </div>
                 </div>
                 
-                <div class="states-grid" id="statesGrid"></div>
+                <div class="territories-grid" id="territoriesGrid"></div>
             </div>
         </div>
         
@@ -102,108 +442,720 @@
         <!-- JOSM Modal -->
         <div id="josmModal" class="modal" style="display: none;">
             <div class="modal-content">
-                <div id="josmModalContent">
-                    <!-- JOSM instructions and links will be populated here -->
-                </div>
+                <div id="josmModalContent"></div>
+            </div>
+        </div>
+        
+        <!-- Team Modal -->
+        <div id="teamModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div id="teamModalContent"></div>
             </div>
         </div>
         
         <!-- Info Modal -->
         <div id="infoModal" class="modal" style="display: none;">
             <div class="modal-content">
-                <div id="infoModalContent">
-                    <!-- Query info will be populated here -->
-                </div>
-            </div>
-        </div>
-        
-        <div class="game-card info-section">
-            <h3 class="info-title">⚙️ JOSM Setup Guide</h3>
-            <div class="setup-warning">
-                <h4>🔒 Important: Browser Security Notice</h4>
-                <p>Due to HTTPS security restrictions on GitHub Pages, JOSM connections require manual clicking instead of automatic loading. This is normal and expected behavior.</p>
-            </div>
-            <ul class="info-list">
-                <li>🔧 <strong>Enable JOSM Remote Control:</strong> Preferences → Remote Control → ✅ Enable remote control</li>
-                <li>🌐 <strong>Port Configuration:</strong> Ensure port 8111 is active (default configuration)</li>
-                <li>💻 <strong>Keep JOSM Running:</strong> JOSM must be open while using Grid Tycoon</li>
-                <li>⚡ <strong>Data Coverage:</strong> Queries fetch power infrastructure ≥50kV with administrative boundaries</li>
-                <li>📥 <strong>Alternative Method:</strong> Use the Download button if JOSM links are blocked</li>
-                <li>🔥 <strong>Firewall:</strong> Ensure your firewall allows connections to localhost:8111</li>
-            </ul>
-        </div>
-        
-        <div class="game-card troubleshooting-section">
-            <h3 class="info-title">🛠️ Troubleshooting</h3>
-            <ul class="info-list">
-                <li>
-                    <strong>JOSM Link Not Working?</strong>
-                    <ul>
-                        <li>Copy the link and paste it directly into your browser's address bar</li>
-                        <li>Check that JOSM is running with Remote Control enabled</li>
-                        <li>Try allowing mixed content for this site in browser settings</li>
-                        <li>Use the Download option as an alternative</li>
-                    </ul>
-                </li>
-                <li>
-                    <strong>No States Loading?</strong>
-                    <ul>
-                        <li>The system will automatically fall back to embedded data if the API fails</li>
-                        <li>Check your internet connection</li>
-                        <li>Try refreshing the page</li>
-                    </ul>
-                </li>
-                <li>
-                    <strong>Overpass Query Timeout?</strong>
-                    <ul>
-                        <li>Some queries may take time due to complex power infrastructure data</li>
-                        <li>Try the query again - different servers may respond faster</li>
-                        <li>Consider using a smaller state/territory first</li>
-                    </ul>
-                </li>
-            </ul>
-        </div>
-        
-        <div class="game-card technical-section">
-            <h3 class="info-title">🔧 Technical Details</h3>
-            <div class="tech-grid">
-                <div class="tech-item">
-                    <h4>🌐 Data Sources</h4>
-                    <ul>
-                        <li>Primary: Overpass API (live OSM data)</li>
-                        <li>Fallback: Embedded state data</li>
-                        <li>Multiple server redundancy</li>
-                    </ul>
-                </div>
-                <div class="tech-item">
-                    <h4>⚡ Infrastructure Types</h4>
-                    <ul>
-                        <li>Transmission lines (≥50kV)</li>
-                        <li>Substations & switching stations</li>
-                        <li>Power plants & generators</li>
-                        <li>Transformers & grid control</li>
-                        <li>Construction projects</li>
-                    </ul>
-                </div>
-                <div class="tech-item">
-                    <h4>🔗 Integration</h4>
-                    <ul>
-                        <li>JOSM Remote Control API</li>
-                        <li>Direct OSM file downloads</li>
-                        <li>XML format for JOSM compatibility</li>
-                        <li>Administrative boundary context</li>
-                    </ul>
-                </div>
+                <div id="infoModalContent"></div>
             </div>
         </div>
         
         <footer class="footer">
-            <p>Grid Tycoon v2.0 | Powered by OpenStreetMap & JOSM | Built for Power Infrastructure Mapping</p>
-            <p><small>🔒 GitHub Pages Compatible • 📡 JOSM Integration • 🗺️ OpenStreetMap Data</small></p>
+            <p>Grid Tycoon v2.2 | Powered by OpenStreetMap & JOSM | Built for Power Infrastructure Mapping</p>
+            <p><small>🔗 GitHub Pages Compatible • 📡 JOSM Integration • 🗺️ OpenStreetMap Data • 👨‍💼 Coordinator Dashboard</small></p>
         </footer>
     </div>
 
+    <!-- Supabase Configuration -->
+    <script>
+        window.SUPABASE_CONFIG = {
+            url: 'https://vsmfugcgmnahnybdyslf.supabase.co',
+            anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZzbWZ1Z2NnbW5haG55YmR5c2xmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgwNzU5MjgsImV4cCI6MjA3MzY1MTkyOH0.ct5JupOIbE5zicOWb1mrWGJtoHNHdV6XdRsXCS0WjBs'
+        };
+        
+        window.GRID_TYCOON_CONFIG = {
+            enableMockMode: false,
+            fallbackToIndividualMode: true
+        };
+    </script>
+
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <script>
+        // Coordinator Dashboard Logic
+        class GridTycoonCoordinator {
+            constructor() {
+                this.supabaseManager = null;
+                this.overpassAPI = null;
+                this.currentSession = null;
+                this.init();
+            }
+
+            async init() {
+                try {
+                    this.supabaseManager = new SupabaseTeamManager();
+                    this.overpassAPI = new OverpassAPI();
+                    console.log('Coordinator system initialized');
+                } catch (error) {
+                    console.error('Coordinator initialization failed:', error);
+                }
+            }
+
+            async checkUserStatus() {
+                const firstName = document.getElementById('firstNameInput').value.trim();
+                const osmUsername = document.getElementById('osmUsernameInput').value.trim();
+                const sessionId = document.getElementById('sessionIdInput').value.trim().toUpperCase();
+                
+                if (!firstName || !osmUsername || !sessionId) {
+                    this.showStatus('error', 'Please fill in all fields!');
+                    return;
+                }
+
+                const isCoordinator = sessionId.includes('COORD') || sessionId.includes('ADMIN') || firstName.toLowerCase().includes('coord');
+                
+                this.currentSession = { firstName, osmUsername, sessionId, isCoordinator };
+                
+                if (isCoordinator) {
+                    await this.showCoordinatorDashboard();
+                } else {
+                    await this.handleParticipantLogin();
+                }
+            }
+
+            async handleParticipantLogin() {
+                const { firstName, osmUsername, sessionId } = this.currentSession;
+                const cleanSessionId = sessionId.replace('-COORD', '').replace('-ADMIN', '');
+                
+                this.showStatus('info', 'Checking your team assignment...', true);
+                
+                try {
+                    // Check if user exists
+                    const userResult = await this.supabaseManager.getUserByOSMUsername(osmUsername, cleanSessionId);
+                    
+                    if (userResult.success && userResult.user) {
+                        // User exists, check team assignment
+                        const teamResult = await this.supabaseManager.getUserTeamInfo(userResult.user.id);
+                        
+                        if (teamResult.success && teamResult.teamInfo) {
+                            // User has team assignment
+                            await this.showParticipantDashboard(teamResult.teamInfo);
+                        } else {
+                            // User registered but no team yet
+                            this.showWaitingForTeam();
+                        }
+                    } else {
+                        // User not found, register them
+                        await this.registerParticipant();
+                    }
+                } catch (error) {
+                    console.error('Error handling participant login:', error);
+                    this.showStatus('error', `Error: ${error.message}`);
+                }
+            }
+
+            async registerParticipant() {
+                const { firstName, osmUsername, sessionId } = this.currentSession;
+                const cleanSessionId = sessionId.replace('-COORD', '').replace('-ADMIN', '');
+                
+                try {
+                    const result = await this.supabaseManager.registerParticipant(firstName, osmUsername, cleanSessionId);
+                    
+                    if (result.success) {
+                        this.showWaitingForTeam();
+                        this.showStatus('success', 'Registration successful! Waiting for team assignment.');
+                    } else {
+                        throw new Error(result.error);
+                    }
+                } catch (error) {
+                    this.showStatus('error', `Registration failed: ${error.message}`);
+                }
+            }
+
+            showWaitingForTeam() {
+                const waitingHtml = `
+                    <div class="participant-waiting">
+                        <h2>Registration Complete!</h2>
+                        <div class="user-info">
+                            <p><strong>Name:</strong> ${this.currentSession.firstName}</p>
+                            <p><strong>OSM Username:</strong> ${this.currentSession.osmUsername}</p>
+                            <p><strong>Session ID:</strong> ${this.currentSession.sessionId}</p>
+                        </div>
+                        <div class="waiting-message">
+                            <div class="spinner"></div>
+                            <p>Waiting for team assignment...</p>
+                            <p>You'll be notified when teams are formed and territories are assigned.</p>
+                        </div>
+                        <div class="waiting-actions">
+                            <button class="btn btn-secondary" onclick="coordinator.refreshParticipantStatus()">
+                                🔄 Refresh Status
+                            </button>
+                            <button class="btn btn-warning" onclick="logout()">
+                                🚪 Back to Registration
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('registrationSection').style.display = 'none';
+                document.getElementById('teamSection').style.display = 'block';
+                document.getElementById('teamDisplay').innerHTML = waitingHtml;
+            }
+
+            async showParticipantDashboard(teamInfo) {
+                this.currentTeam = teamInfo;
+                
+                // Get team territories
+                const territoriesResult = await this.supabaseManager.getTeamTerritories(teamInfo.id);
+                const territories = territoriesResult.success ? territoriesResult.territories : [];
+                
+                const userRole = teamInfo.userRole || teamInfo.members.find(m => 
+                    m.participants.osm_username === this.currentSession.osmUsername
+                );
+                
+                const participantHtml = `
+                    <div class="participant-dashboard">
+                        <div class="current-team team-active team-color-${teamInfo.team_index % 6}">
+                            <h2>Welcome to ${teamInfo.team_name}!</h2>
+                            
+                            <div class="user-role-display">
+                                <h3>Your Role: ${userRole.role_icon} ${userRole.role_name}</h3>
+                                <p class="role-description">${userRole.role_description}</p>
+                            </div>
+                            
+                            <div class="team-members-display">
+                                <h4>Team Members:</h4>
+                                ${teamInfo.members.map(member => {
+                                    const isYou = member.participants.osm_username === this.currentSession.osmUsername;
+                                    return `
+                                        <div class="team-member-compact ${isYou ? 'highlight-you' : ''}">
+                                            <span class="role-icon">${member.role_icon}</span>
+                                            <strong>${member.participants.first_name}</strong> (${member.role_name})
+                                            ${isYou ? ' - YOU' : ''}
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                            
+                            <div class="team-progress-info">
+                                <h4>Team Progress:</h4>
+                                <p><strong>${territories.filter(t => t.status === 'completed').length}/${territories.length}</strong> territories completed</p>
+                                <div class="progress-bar" style="background: #eee; height: 20px; border-radius: 10px; margin: 10px 0;">
+                                    <div class="progress-fill" style="width: ${territories.length > 0 ? (territories.filter(t => t.status === 'completed').length / territories.length) * 100 : 0}%; height: 100%; background: #27ae60; border-radius: 10px; transition: width 0.3s;"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="participant-actions">
+                                <button class="btn btn-success" onclick="coordinator.showMappingInterface()">
+                                    🗺️ Start Mapping
+                                </button>
+                                <button class="btn btn-info" onclick="coordinator.showTeamOverview()">
+                                    👥 Team Overview
+                                </button>
+                                <button class="btn btn-secondary" onclick="coordinator.refreshParticipantStatus()">
+                                    🔄 Refresh Status
+                                </button>
+                                <button class="btn btn-warning" onclick="logout()">
+                                    🚪 Logout
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('registrationSection').style.display = 'none';
+                document.getElementById('teamSection').style.display = 'block';
+                document.getElementById('teamDisplay').innerHTML = participantHtml;
+                
+                this.showStatus('success', `Welcome to ${teamInfo.team_name}! Your role: ${userRole.role_name}`);
+            }
+
+            async showMappingInterface() {
+                if (!this.currentTeam) return;
+                
+                // Get territories for this team
+                const territoriesResult = await this.supabaseManager.getTeamTerritories(this.currentTeam.id);
+                const territories = territoriesResult.success ? territoriesResult.territories : [];
+                
+                const mappingHtml = `
+                    <div class="mapping-interface">
+                        <h2>🗺️ Mapping Interface - ${this.currentTeam.team_name}</h2>
+                        
+                        <div class="current-territory" id="currentTerritoryDisplay" style="display: none;">
+                            <h3>🎯 Current Target Territory</h3>
+                            <div class="territory-name" id="currentTerritoryName"></div>
+                            <div class="territory-details" id="territoryDetails"></div>
+                            <div class="territory-actions">
+                                <button class="btn btn-success" onclick="coordinator.loadJOSM()">
+                                    📡 Load into JOSM
+                                </button>
+                                <button class="btn btn-info" onclick="coordinator.downloadOSM()">
+                                    📥 Download OSM Data
+                                </button>
+                                <button class="btn btn-danger" onclick="coordinator.markTerritoryComplete()">
+                                    ✅ Mark Complete
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="territory-controls">
+                            <button class="btn btn-primary" onclick="coordinator.selectRandomTerritory()">
+                                🎲 Select Random Territory
+                            </button>
+                            <button class="btn btn-secondary" onclick="coordinator.showParticipantDashboard(coordinator.currentTeam)">
+                                ← Back to Team Dashboard
+                            </button>
+                        </div>
+                        
+                        <div class="territories-grid">
+                            <h4>Team Territories (${territories.length})</h4>
+                            <div class="territories-list">
+                                ${territories.map(territory => `
+                                    <div class="territory-card ${territory.status}" onclick="coordinator.selectTerritory('${territory.id}')">
+                                        <strong>${territory.territory_name}</strong>
+                                        <span class="territory-status">${territory.status}</span>
+                                        ${territory.status === 'completed' ? `<span class="completed-date">${new Date(territory.completed_at).toLocaleDateString()}</span>` : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('teamDisplay').innerHTML = mappingHtml;
+                this.currentTerritories = territories;
+            }
+
+            async refreshParticipantStatus() {
+                await this.handleParticipantLogin();
+            }
+
+            selectRandomTerritory() {
+                if (!this.currentTerritories) return;
+                
+                const available = this.currentTerritories.filter(t => t.status === 'available');
+                if (available.length === 0) {
+                    this.showStatus('success', 'All territories completed! Great job!');
+                    return;
+                }
+                
+                const randomTerritory = available[Math.floor(Math.random() * available.length)];
+                this.selectTerritory(randomTerritory.id);
+            }
+
+            selectTerritory(territoryId) {
+                const territory = this.currentTerritories.find(t => t.id === territoryId);
+                if (!territory) return;
+                
+                this.currentTerritory = territory;
+                
+                document.getElementById('currentTerritoryDisplay').style.display = 'block';
+                document.getElementById('currentTerritoryName').textContent = territory.territory_name;
+                document.getElementById('territoryDetails').innerHTML = `
+                    <p><strong>OSM Relation ID:</strong> ${territory.territory_osm_id}</p>
+                    <p><strong>Status:</strong> ${territory.status}</p>
+                    <p><strong>Mission:</strong> Map high-voltage power infrastructure using JOSM</p>
+                `;
+                
+                this.showStatus('info', `Selected: ${territory.territory_name}`);
+            }
+
+            async loadJOSM() {
+                if (!this.currentTerritory) return;
+                
+                const josmData = this.overpassAPI.generateSafeJOSMUrl(this.currentTerritory.territory_osm_id);
+                
+                const modalContent = `
+                    <h3>Load ${this.currentTerritory.territory_name} into JOSM</h3>
+                    <div style="background: #e8f4f8; padding: 20px; border-radius: 10px; margin: 20px 0;">
+                        <h4>Instructions:</h4>
+                        <ol>
+                            ${josmData.instructions.map(instruction => `<li>${instruction}</li>`).join('')}
+                        </ol>
+                    </div>
+                    <div style="text-align: center; margin: 20px 0;">
+                        <a href="${josmData.url}" target="_blank" class="btn btn-success">
+                            📡 Load Data into JOSM
+                        </a>
+                        <button class="btn btn-secondary" onclick="closeModal()" style="margin-left: 10px;">
+                            Close
+                        </button>
+                    </div>
+                `;
+                
+                this.showModal(modalContent);
+            }
+
+            downloadOSM() {
+                if (!this.currentTerritory) return;
+                
+                const url = this.overpassAPI.generateDownloadUrl(this.currentTerritory.territory_osm_id);
+                
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `${this.currentTerritory.territory_name.replace(/\s+/g, '_')}_power.osm`;
+                link.target = '_blank';
+                link.click();
+                
+                this.showStatus('success', `Download started for ${this.currentTerritory.territory_name}`);
+            }
+
+            async markTerritoryComplete() {
+                if (!this.currentTerritory) return;
+                
+                try {
+                    const result = await this.supabaseManager.updateTerritoryStatus(
+                        this.currentTerritory.id,
+                        'completed'
+                    );
+                    
+                    if (result.success) {
+                        // Update local data
+                        const index = this.currentTerritories.findIndex(t => t.id === this.currentTerritory.id);
+                        if (index !== -1) {
+                            this.currentTerritories[index].status = 'completed';
+                            this.currentTerritories[index].completed_at = new Date().toISOString();
+                        }
+                        
+                        const completedName = this.currentTerritory.territory_name;
+                        this.currentTerritory = null;
+                        
+                        // Hide current territory display
+                        document.getElementById('currentTerritoryDisplay').style.display = 'none';
+                        
+                        // Refresh the mapping interface
+                        await this.showMappingInterface();
+                        
+                        this.showStatus('success', `${completedName} marked as complete!`);
+                    } else {
+                        throw new Error(result.error);
+                    }
+                } catch (error) {
+                    this.showStatus('error', `Error marking complete: ${error.message}`);
+                }
+            }
+
+            async showTeamOverview() {
+                if (!this.currentTeam) return;
+                
+                const territoriesResult = await this.supabaseManager.getTeamTerritories(this.currentTeam.id);
+                const territories = territoriesResult.success ? territoriesResult.territories : [];
+                
+                const overviewHtml = `
+                    <div>
+                        <h3>${this.currentTeam.team_name} Overview</h3>
+                        <div style="background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                            <h4>Team Members:</h4>
+                            ${this.currentTeam.members.map(member => `
+                                <div style="display: flex; align-items: center; margin: 10px 0; padding: 10px; background: white; border-radius: 5px;">
+                                    <span style="margin-right: 10px; font-size: 1.2em;">${member.role_icon}</span>
+                                    <div>
+                                        <strong>${member.participants.first_name}</strong> (@${member.participants.osm_username})
+                                        <br><small>${member.role_name}: ${member.role_description}</small>
+                                    </div>
+                                </div>
+                            `).join('')}
+                            
+                            <h4 style="margin-top: 20px;">Territory Progress:</h4>
+                            <p><strong>${territories.filter(t => t.status === 'completed').length}/${territories.length}</strong> territories completed</p>
+                            
+                            <div style="max-height: 200px; overflow-y: auto; margin-top: 10px;">
+                                ${territories.map(territory => `
+                                    <div style="display: flex; justify-content: space-between; padding: 5px; margin: 2px 0; background: ${territory.status === 'completed' ? '#d5f4e6' : '#fff3cd'}; border-radius: 3px;">
+                                        <span>${territory.territory_name}</span>
+                                        <span>${territory.status === 'completed' ? '✅' : '📍'}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <button class="btn btn-secondary" onclick="closeModal()" style="margin-top: 20px;">Close</button>
+                    </div>
+                `;
+                
+                this.showModal(overviewHtml);
+            }
+
+            async showCoordinatorDashboard() {
+                const sessionId = this.currentSession.sessionId.replace('-COORD', '').replace('-ADMIN', '');
+                
+                this.showStatus('info', 'Loading coordinator dashboard...', true);
+                
+                try {
+                    const [participantsResult, progressResult] = await Promise.all([
+                        this.supabaseManager.getSessionParticipants(sessionId),
+                        this.supabaseManager.getSessionProgress(sessionId)
+                    ]);
+
+                    const participants = participantsResult.success ? participantsResult.participants : [];
+                    const progress = progressResult.success ? progressResult : { 
+                        teamCount: 0, totalTerritories: 0, completedTerritories: 0, 
+                        completionPercentage: 0, teams: [], leaderboard: []
+                    };
+
+                    const dashboardHtml = `
+                        <div class="coordinator-dashboard">
+                            <h2>🎯 Coordinator Dashboard</h2>
+                            <div class="session-info">
+                                <h3>Session: ${sessionId}</h3>
+                                <p><strong>Coordinator:</strong> ${this.currentSession.firstName} (@${this.currentSession.osmUsername})</p>
+                                <p><strong>Status:</strong> ${progress.sessionStatus || 'Not Started'}</p>
+                                <p><strong>Participants:</strong> ${participants.length}</p>
+                                <p><strong>Teams:</strong> ${progress.teamCount || 0}</p>
+                                <p><strong>Progress:</strong> ${progress.completedTerritories || 0}/${progress.totalTerritories || 0} territories (${progress.completionPercentage || 0}%)</p>
+                            </div>
+
+                            <div class="coordinator-actions">
+                                <h4>Session Management</h4>
+                                <button class="btn btn-primary" onclick="coordinator.viewParticipants()" ${participants.length === 0 ? 'disabled' : ''}>
+                                    👥 View Participants (${participants.length})
+                                </button>
+                                <button class="btn btn-success" onclick="coordinator.setupCompleteSession()" ${participants.length < 3 ? 'disabled' : ''}>
+                                    🚀 Setup Teams & Territories
+                                </button>
+                                <button class="btn btn-info" onclick="coordinator.viewLeaderboard()" ${progress.teamCount === 0 ? 'disabled' : ''}>
+                                    🏆 View Leaderboard
+                                </button>
+                                <button class="btn btn-secondary" onclick="coordinator.refreshDashboard()">
+                                    🔄 Refresh Dashboard
+                                </button>
+                                <button class="btn btn-warning" onclick="logout()">
+                                    🚪 Logout
+                                </button>
+                            </div>
+
+                            ${progress.teamCount > 0 ? this.renderTeamOverview(progress.teams) : ''}
+                            ${progress.leaderboard && progress.leaderboard.length > 0 ? this.renderLeaderboard(progress.leaderboard) : ''}
+                        </div>
+                    `;
+                    
+                    document.getElementById('registrationSection').style.display = 'none';
+                    document.getElementById('coordinatorSection').style.display = 'block';
+                    document.getElementById('coordinatorDashboard').innerHTML = dashboardHtml;
+                    
+                    this.showStatus('success', `Coordinator dashboard loaded for session ${sessionId}`);
+                    
+                } catch (error) {
+                    console.error('Error loading coordinator dashboard:', error);
+                    this.showStatus('error', `Error loading dashboard: ${error.message}`);
+                }
+            }
+
+            renderTeamOverview(teams) {
+                if (!teams || teams.length === 0) return '';
+                
+                return `
+                    <div class="teams-overview">
+                        <h4>Teams Overview</h4>
+                        <div class="teams-grid">
+                            ${teams.map((team, index) => {
+                                const completedTerritories = team.territories ? team.territories.filter(t => t.status === 'completed').length : 0;
+                                const totalTerritories = team.territories ? team.territories.length : 0;
+                                const percentage = totalTerritories > 0 ? Math.round((completedTerritories / totalTerritories) * 100) : 0;
+                                
+                                return `
+                                    <div class="team-card team-color-${index % 6}">
+                                        <h5>${team.team_name}</h5>
+                                        <p><strong>Progress:</strong> ${completedTerritories}/${totalTerritories} (${percentage}%)</p>
+                                        <p><strong>Members:</strong> ${team.members ? team.members.length : 0}</p>
+                                        <div style="margin-top: 10px;">
+                                            ${team.members ? team.members.map(m => `
+                                                <div style="font-size: 0.9em; margin: 2px 0;">
+                                                    ${m.role_icon} ${m.first_name} - ${m.role_name}
+                                                </div>
+                                            `).join('') : ''}
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            renderLeaderboard(leaderboard) {
+                if (!leaderboard || leaderboard.length === 0) return '';
+                
+                return `
+                    <div class="leaderboard-section">
+                        <h4>🏆 Team Leaderboard</h4>
+                        <div class="leaderboard">
+                            ${leaderboard.map((team, index) => {
+                                const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🏅';
+                                return `
+                                    <div class="leaderboard-item rank-${index + 1}">
+                                        <span>${medal} #${index + 1}</span>
+                                        <span>${team.team_name}</span>
+                                        <span>${team.completed_territories}/${team.total_territories}</span>
+                                        <span>${team.completion_percentage}%</span>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            async setupCompleteSession() {
+                const sessionId = this.currentSession.sessionId.replace('-COORD', '').replace('-ADMIN', '');
+                
+                this.showStatus('info', 'Setting up teams and distributing territories...', true);
+                
+                try {
+                    const territories = await this.overpassAPI.fetchIndianStates();
+                    console.log(`Fetched ${territories.length} territories for distribution`);
+                    
+                    const result = await this.supabaseManager.coordinatorSetupSession(sessionId, territories);
+                    
+                    if (result.success) {
+                        this.showStatus('success', `Session setup complete! ${result.teamsCreated} teams formed, ${result.territoriesDistributed} territories distributed.`);
+                        await this.refreshDashboard();
+                    } else {
+                        throw new Error(result.error);
+                    }
+                    
+                } catch (error) {
+                    console.error('Session setup failed:', error);
+                    this.showStatus('error', `Failed to setup session: ${error.message}`);
+                }
+            }
+
+            async viewParticipants() {
+                const sessionId = this.currentSession.sessionId.replace('-COORD', '').replace('-ADMIN', '');
+                
+                try {
+                    const result = await this.supabaseManager.getSessionParticipants(sessionId);
+                    
+                    if (result.success) {
+                        const participants = result.participants;
+                        
+                        const participantsHtml = `
+                            <div>
+                                <h3>Session Participants (${participants.length})</h3>
+                                <div class="participants-list">
+                                    ${participants.map((p, index) => `
+                                        <div class="participant-item">
+                                            <span>${index + 1}. ${p.first_name} (@${p.osm_username})</span>
+                                            <span>${new Date(p.created_at).toLocaleString()}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                <div style="margin-top: 20px;">
+                                    <p><strong>Team Formation:</strong> ${Math.floor(participants.length / 3)} teams possible (${participants.length % 3} unassigned)</p>
+                                    <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+                                </div>
+                            </div>
+                        `;
+                        
+                        this.showModal(participantsHtml);
+                    }
+                } catch (error) {
+                    this.showStatus('error', `Error loading participants: ${error.message}`);
+                }
+            }
+
+            async viewLeaderboard() {
+                const sessionId = this.currentSession.sessionId.replace('-COORD', '').replace('-ADMIN', '');
+                
+                try {
+                    const result = await this.supabaseManager.getTeamLeaderboard(sessionId);
+                    
+                    if (result.success && result.leaderboard) {
+                        const leaderboard = result.leaderboard;
+                        
+                        const leaderboardHtml = `
+                            <div>
+                                <h3>Team Leaderboard</h3>
+                                <div style="background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                                    ${leaderboard.map((team, index) => {
+                                        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🏅';
+                                        return `
+                                            <div style="display: flex; justify-content: space-between; padding: 10px; margin: 5px 0; background: white; border-radius: 5px; border-left: 4px solid ${index < 3 ? (index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : '#CD7F32') : '#ddd'};">
+                                                <span>${medal} ${team.team_name}</span>
+                                                <span>${team.completed_territories}/${team.total_territories} (${team.completion_percentage}%)</span>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                                <button class="btn btn-secondary" onclick="closeModal()" style="margin-top: 20px;">Close</button>
+                            </div>
+                        `;
+                        
+                        this.showModal(leaderboardHtml);
+                    }
+                } catch (error) {
+                    this.showStatus('error', `Error loading leaderboard: ${error.message}`);
+                }
+            }
+
+            async refreshDashboard() {
+                await this.showCoordinatorDashboard();
+            }
+
+            showModal(content) {
+                document.getElementById('infoModalContent').innerHTML = content;
+                document.getElementById('infoModal').style.display = 'block';
+            }
+
+            showStatus(type, message, loading = false) {
+                const statusDiv = document.getElementById('statusDiv');
+                statusDiv.style.display = 'block';
+                statusDiv.className = `status status-${type}`;
+                
+                if (loading) {
+                    statusDiv.innerHTML = `
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <div>${message}</div>
+                        </div>
+                    `;
+                } else {
+                    statusDiv.textContent = message;
+                }
+
+                if (type === 'success' || type === 'info') {
+                    setTimeout(() => {
+                        statusDiv.style.display = 'none';
+                    }, 5000);
+                }
+            }
+        }
+
+        // Global coordinator instance
+        let coordinator;
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            coordinator = new GridTycoonCoordinator();
+        });
+
+        // Global functions
+        function checkUserStatus() { 
+            coordinator.checkUserStatus(); 
+        }
+
+        function logout() {
+            document.getElementById('coordinatorSection').style.display = 'none';
+            document.getElementById('registrationSection').style.display = 'block';
+            document.getElementById('firstNameInput').value = '';
+            document.getElementById('osmUsernameInput').value = '';
+            document.getElementById('sessionIdInput').value = '';
+            coordinator.showStatus('info', 'Logged out successfully.');
+        }
+
+        function closeModal() {
+            document.getElementById('infoModal').style.display = 'none';
+        }
+
+        // Handle modal clicks
+        window.onclick = function(event) {
+            const infoModal = document.getElementById('infoModal');
+            if (event.target === infoModal) {
+                closeModal();
+            }
+        }
+    </script>
+    
     <script src="overpass.js"></script>
-    <script src="game.js"></script>
+    <script src="supabase_integration.js"></script>
 </body>
 </html>
