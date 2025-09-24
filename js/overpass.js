@@ -1,9 +1,9 @@
 /**
  * OpenStreetMap Overpass API Integration for Grid Tycoon
  * 
- * Updated to use ISO codes instead of OSM relation IDs
+ * Streamlined version with unnecessary features removed
  * 
- * @version 3.2
+ * @version 3.3
  * @author Grid Tycoon Team
  */
 
@@ -62,7 +62,7 @@ class OverpassAPI {
             {name: 'Puducherry', isoCode: 'IN-PY', osmRelationId: 1656201, placeType: 'union_territory'}
         ];
         
-        console.log('OverpassAPI v3.2 initialized with ISO code support for', this.territories.length, 'territories');
+        console.log('OverpassAPI v3.3 initialized with ISO code support for', this.territories.length, 'territories');
     }
 
     // ================================
@@ -205,7 +205,7 @@ out tags;`
     }
 
     // ================================
-    // QUERY GENERATION - ISO CODE BASED
+    // QUERY GENERATION - SINGLE COMPREHENSIVE QUERY
     // ================================
 
     /**
@@ -292,78 +292,7 @@ out meta;`;
     }
 
     /**
-     * Generate a simplified power query for testing
-     * @param {string} isoCode - ISO code for the territory
-     * @returns {string} Simple test query
-     */
-    generateSimplePowerQuery(isoCode) {
-        if (!this.validateISOCode(isoCode)) {
-            throw new Error(`Invalid ISO code: ${isoCode}`);
-        }
-
-        return `[out:xml][timeout:${this.timeout}];
-
-// Find territory by ISO code
-area["ISO3166-2"="${isoCode}"]->.searchArea;
-
-(
-  node["power"](area.searchArea);
-  way["power"](area.searchArea);
-  relation["power"](area.searchArea);
-  
-  // Also get the boundary for context
-  relation["ISO3166-2"="${isoCode}"];
-);
-
-out meta;
->;
-out meta;`;
-    }
-
-    /**
-     * Generate bbox-based query as fallback
-     * @param {string} isoCode - ISO code for the territory
-     * @returns {Promise<string>} Bbox-based query
-     */
-    async generateBboxPowerQuery(isoCode) {
-        try {
-            // First get the territory bbox using ISO code
-            const bboxQuery = `[out:json][timeout:60];
-relation["ISO3166-2"="${isoCode}"];
-out bb;`;
-
-            const result = await this.executeQuery(bboxQuery);
-            if (!result.success || !result.data.elements?.length) {
-                throw new Error('Could not get territory bounding box');
-            }
-
-            const element = result.data.elements[0];
-            if (!element.bounds) {
-                throw new Error('No bounding box data available');
-            }
-
-            const bbox = `${element.bounds.south},${element.bounds.west},${element.bounds.north},${element.bounds.east}`;
-
-            return `[out:xml][timeout:${this.timeout}][bbox:${bbox}];
-
-(
-  node["power"];
-  way["power"];
-  relation["power"];
-);
-
-out meta;
->;
-out meta;`;
-
-        } catch (error) {
-            console.error('Bbox query generation failed:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Generate JOSM remote control URL using ISO code
+     * Generate JOSM remote control URL using ISO code (single URL only)
      * @param {string} isoCode - ISO code for the territory
      * @returns {{success: boolean, data?: object, error?: string}}
      */
@@ -376,44 +305,25 @@ out meta;`;
             const territory = this.findTerritoryByISOCode(isoCode);
             const territoryName = territory ? territory.name : isoCode;
 
-            const queries = [
-                {
-                    name: 'Full Power Query',
-                    query: this.generatePowerQuery(isoCode)
-                },
-                {
-                    name: 'Simple Power Query',
-                    query: this.generateSimplePowerQuery(isoCode)
-                }
-            ];
-
-            const josmUrls = queries.map(queryInfo => {
-                const encodedQuery = encodeURIComponent(queryInfo.query);
-                return {
-                    name: queryInfo.name,
-                    url: `http://localhost:8111/import?url=${encodeURIComponent(this.servers[0] + '?data=' + encodedQuery)}`,
-                    query: queryInfo.query
-                };
-            });
+            const query = this.generatePowerQuery(isoCode);
+            const encodedQuery = encodeURIComponent(query);
+            const josmUrl = `http://localhost:8111/import?url=${encodeURIComponent(this.servers[0] + '?data=' + encodedQuery)}`;
 
             return {
                 success: true,
                 data: {
-                    josmUrls: josmUrls,
-                    primaryUrl: josmUrls[0].url,
+                    josmUrl: josmUrl,
                     isoCode: isoCode,
                     territoryName: territoryName,
                     instructions: [
                         "Make sure JOSM is running",
                         "Enable Remote Control in JOSM (Preferences → Remote Control → Enable remote control)",
-                        `Try the Full Power Query for ${territoryName} first`,
-                        "If no data loads, try the Simple Power Query",
+                        `Click the link to load ${territoryName} power infrastructure data into JOSM`,
                         "If your browser blocks the link, copy it to your address bar"
                     ],
                     troubleshooting: [
                         "Ensure JOSM is running with Remote Control enabled",
                         "Check that port 8111 is not blocked by firewall",
-                        "Try the Simple Power Query if Full Query returns no data",
                         `Some territories may have sparse power infrastructure data`,
                         `Verify the ISO code ${isoCode} is correct`,
                         "Try refreshing JOSM if it becomes unresponsive"
@@ -423,37 +333,6 @@ out meta;`;
             
         } catch (error) {
             console.error('JOSM URL generation failed:', error);
-            return {
-                success: false,
-                error: error.message
-            };
-        }
-    }
-
-    /**
-     * Generate direct download URL using ISO code
-     * @param {string} isoCode - ISO code for the territory
-     * @returns {{success: boolean, data?: string, error?: string}}
-     */
-    generateDownloadUrl(isoCode) {
-        try {
-            if (!this.validateISOCode(isoCode)) {
-                throw new Error(`Invalid ISO code: ${isoCode}`);
-            }
-
-            const query = this.generatePowerQuery(isoCode);
-            const encodedQuery = encodeURIComponent(query);
-            const downloadUrl = `${this.servers[0]}?data=${encodedQuery}`;
-
-            return {
-                success: true,
-                data: downloadUrl,
-                fallbackQuery: this.generateSimplePowerQuery(isoCode),
-                isoCode: isoCode
-            };
-            
-        } catch (error) {
-            console.error('Download URL generation failed:', error);
             return {
                 success: false,
                 error: error.message
@@ -533,7 +412,7 @@ out meta;`;
                 signal: controller.signal,
                 headers: {
                     'Accept': 'application/json,application/xml,text/xml,*/*',
-                    'User-Agent': 'GridTycoon/3.2'
+                    'User-Agent': 'GridTycoon/3.3'
                 }
             });
             
@@ -614,8 +493,8 @@ out meta;`;
         try {
             console.log(`Testing query with ISO code: ${testIsoCode}`);
             
-            const simpleQuery = this.generateSimplePowerQuery(testIsoCode);
-            const result = await this.executeQuery(simpleQuery);
+            const query = this.generatePowerQuery(testIsoCode);
+            const result = await this.executeQuery(query);
             
             return {
                 success: result.success,
@@ -717,7 +596,7 @@ out meta;`;
 • Underground power cables
 • Administrative boundaries for geographic context
 
-The query uses ISO codes (like IN-MH for Maharashtra) for more reliable territory identification.`;
+The query uses ISO codes (like IN-MH for Maharashtra) for reliable territory identification.`;
     }
 
     /**
@@ -733,13 +612,12 @@ The query uses ISO codes (like IN-MH for Maharashtra) for more reliable territor
             usesISOCodes: true,
             infrastructureTypes: 15,
             outputFormat: 'XML (JOSM compatible)',
-            version: '3.2',
+            version: '3.3',
             features: [
                 'ISO code based queries',
                 'Multi-server fallback',
-                'Enhanced error reporting', 
-                'Multiple query strategies',
-                'Area lookup fallbacks'
+                'Enhanced error reporting',
+                'Streamlined interface'
             ]
         };
     }

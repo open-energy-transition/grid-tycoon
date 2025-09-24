@@ -616,17 +616,13 @@ class GridTycoonApp {
     }
 
     /**
-     * Render territory action buttons based on status
+     * Render territory action buttons based on status (simplified)
      */
     renderTerritoryActions(territory) {
         if (territory.status === 'completed') {
             return `
                 <button class="btn btn-secondary" onclick="app.viewTerritoryDetails('${territory.id}')">
                     View Details
-                </button>
-                <button class="btn btn-info" onclick="app.downloadTerritoryData('${territory.id}')" 
-                        ${!territory.overpass_ready ? 'disabled' : ''}>
-                    Download OSM
                 </button>
             `;
         }
@@ -635,10 +631,6 @@ class GridTycoonApp {
             <button class="btn btn-success" onclick="app.loadTerritoryInJOSM('${territory.id}')" 
                     ${!territory.overpass_ready ? 'disabled title="Territory not ready for JOSM"' : ''}>
                 Load in JOSM
-            </button>
-            <button class="btn btn-info" onclick="app.downloadTerritoryData('${territory.id}')" 
-                    ${!territory.overpass_ready ? 'disabled' : ''}>
-                Download OSM
             </button>
             ${territory.status === 'available' ? `
                 <button class="btn btn-warning" onclick="app.startWorkingOnTerritory('${territory.id}')">
@@ -652,7 +644,7 @@ class GridTycoonApp {
     }
 
     // ================================
-    // TERRITORY OPERATIONS - UPDATED FOR ISO CODES
+    // TERRITORY OPERATIONS - STREAMLINED
     // ================================
 
     /**
@@ -709,11 +701,9 @@ class GridTycoonApp {
                     </ol>
                 </div>
                 <div style="text-align: center; margin: 20px 0;">
-                    ${josmData.josmUrls.map(josmUrl => `
-                        <a href="${josmUrl.url}" target="_blank" class="btn btn-success" style="margin: 5px; display: inline-block;">
-                            ${josmUrl.name} for ${territory.territory_name}
-                        </a>
-                    `).join('')}
+                    <a href="${josmData.josmUrl}" target="_blank" class="btn btn-success" style="margin: 10px;">
+                        Load ${territory.territory_name} into JOSM
+                    </a>
                     <button class="btn btn-secondary" onclick="app.closeModal()" style="margin: 10px;">
                         Close
                     </button>
@@ -731,78 +721,6 @@ class GridTycoonApp {
         } catch (error) {
             console.error('Error loading territory in JOSM:', error);
             this.showStatus('error', `Error loading JOSM: ${error.message}`);
-        }
-    }
-
-    /**
-     * Download territory data using ISO codes
-     */
-    async downloadTerritoryData(assignmentId) {
-        if (!this.supabaseManager || !this.overpassAPI) {
-            this.showStatus('error', 'System not properly initialized');
-            return;
-        }
-
-        this.showStatus('info', 'Preparing data download...', true);
-
-        try {
-            // Get territory data from database
-            const territoryResult = await this.supabaseManager.getTerritoryForOverpass(assignmentId);
-            
-            if (!territoryResult.success) {
-                throw new Error(territoryResult.error);
-            }
-            
-            const territory = territoryResult.data;
-            
-            if (!territory.iso_code) {
-                throw new Error('Territory does not have ISO code for data download');
-            }
-
-            // Generate download URL using ISO code
-            const downloadResult = this.overpassAPI.generateDownloadUrl(territory.iso_code);
-            
-            if (!downloadResult.success) {
-                throw new Error(downloadResult.error);
-            }
-            
-            // Try direct download
-            try {
-                const link = document.createElement('a');
-                link.href = downloadResult.data;
-                link.download = `${territory.territory_name.replace(/\s+/g, '_')}_${territory.iso_code}_power.osm`;
-                link.target = '_blank';
-                link.click();
-                
-                this.showStatus('success', `Download started for ${territory.territory_name} power infrastructure data`);
-                
-            } catch (downloadError) {
-                // If direct download fails, show the URL
-                const modalContent = `
-                    <h3>Download ${territory.territory_name} Power Data</h3>
-                    <p>Click the link below to download power infrastructure data:</p>
-                    <div style="text-align: center; margin: 20px 0;">
-                        <a href="${downloadResult.data}" target="_blank" class="btn btn-success" download="${territory.territory_name.replace(/\s+/g, '_')}_${territory.iso_code}_power.osm">
-                            Download ${territory.territory_name} OSM Data
-                        </a>
-                    </div>
-                    <p><small>If the download doesn't start automatically, right-click the link and select "Save As"</small></p>
-                    <div style="text-align: center; margin: 20px 0;">
-                        <button class="btn btn-secondary" onclick="app.closeModal()">Close</button>
-                    </div>
-                `;
-                this.showModal(modalContent);
-            }
-            
-        } catch (error) {
-            console.error('Error downloading territory data:', error);
-            
-            let errorMessage = `Error downloading data: ${error.message}`;
-            if (error.message.includes('CORS') || error.message.includes('network')) {
-                errorMessage += '. This is likely due to browser security restrictions. Try using JOSM instead.';
-            }
-            
-            this.showStatus('error', errorMessage);
         }
     }
 
@@ -1229,17 +1147,6 @@ class GridTycoonApp {
                     <button class="btn btn-success" onclick="app.setupCompleteSession()" ${!teamFormationInfo.canFormTeams ? 'disabled' : ''}>
                         Setup Teams & Territories
                     </button>
-                    <button class="btn btn-info" onclick="app.viewLeaderboard()" ${progress.teamCount === 0 ? 'disabled' : ''}>
-                        View Leaderboard
-                    </button>
-                    ${progress.teamCount > 0 ? `
-                    <button class="btn btn-warning" onclick="app.verifyTeamComposition()">
-                        Verify Team Composition
-                    </button>
-                    ` : ''}
-                    <button class="btn btn-secondary" onclick="app.validateTerritoryAssignments()" ${progress.teamCount === 0 ? 'disabled' : ''}>
-                        Validate Territories
-                    </button>
                     <button class="btn btn-secondary" onclick="app.refreshCoordinatorDashboard()">
                         Refresh Dashboard
                     </button>
@@ -1303,7 +1210,7 @@ class GridTycoonApp {
     }
 
     // ================================
-    // COORDINATOR ACTIONS - IMPLEMENTED
+    // COORDINATOR ACTIONS - STREAMLINED
     // ================================
 
     async viewParticipants() {
@@ -1412,18 +1319,6 @@ class GridTycoonApp {
             console.error('Error loading participants:', error);
             this.showStatus('error', `Error loading participants: ${error.message}`);
         }
-    }
-
-    async viewLeaderboard() {
-        this.showModal('<h3>Leaderboard view - Implementation in progress</h3>');
-    }
-
-    async verifyTeamComposition() {
-        this.showModal('<h3>Team verification - Implementation in progress</h3>');
-    }
-
-    async validateTerritoryAssignments() {
-        this.showModal('<h3>Territory validation - Implementation in progress</h3>');
     }
 
     async viewTerritoryDetails(assignmentId) {
