@@ -15,45 +15,58 @@
 </head>
 <body>
     <div class="container">
-        <header class="game-header">
-            <h1 class="game-title">⚡ GRID TYCOON ⚡</h1>
-            <p class="game-subtitle">Master India's Power Infrastructure Network</p>
+        <header class="header">
+            <h1 class="title">Grid Tycoon</h1>
+            <p class="subtitle">India's Power Infrastructure Mapping Platform</p>
         </header>
-        
+
         <!-- Registration Section -->
-        <section id="registrationSection" class="game-card">
-            <h3>👥 Join Mapping Session</h3>
-            <p style="margin: 20px 0; font-size: 1.1rem;">
-                Enter your details to check team assignment or register for a new session.
-                <br><strong>Coordinators:</strong> Use session ID with "COORD" or "ADMIN" for coordinator access.
-            </p>
-            
-            <div class="registration-form">
-                <input type="text" id="firstNameInput" class="form-input" placeholder="First Name" required>
-                <input type="text" id="osmUsernameInput" class="form-input" placeholder="OSM Username" required>
-                <input type="text" id="sessionIdInput" class="form-input" placeholder="Session ID (e.g., 12345 or 12345-COORD)" required>
+        <section id="registrationSection" class="section">
+            <div class="section-header">
+                <h2>Join Mapping Session</h2>
+                <p class="section-description">
+                    Enter your details to check team assignment or register for a new session.
+                </p>
+                <p class="help-text">
+                    <strong>Coordinators:</strong> Use session ID with "COORD" or "ADMIN" for coordinator access.
+                </p>
+            </div>
+
+            <div class="form-container">
+                <div class="form-group">
+                    <label for="firstNameInput" class="form-label">First Name</label>
+                    <input type="text" id="firstNameInput" class="form-input" placeholder="Enter your first name" required>
+                </div>
+                <div class="form-group">
+                    <label for="osmUsernameInput" class="form-label">OSM Username</label>
+                    <input type="text" id="osmUsernameInput" class="form-input" placeholder="Your OpenStreetMap username" required>
+                </div>
+                <div class="form-group">
+                    <label for="sessionIdInput" class="form-label">Session ID</label>
+                    <input type="text" id="sessionIdInput" class="form-input" placeholder="e.g., 12345 or 12345-COORD" required>
+                </div>
                 <button class="btn btn-primary" onclick="app.checkUserStatus()">
-                    🔍 Check Status / Register
+                    Check Status / Register
                 </button>
             </div>
         </section>
 
         <!-- Coordinator Dashboard Section -->
-        <section id="coordinatorSection" class="game-card" style="display: none;">
+        <section id="coordinatorSection" class="section" style="display: none;">
             <div id="coordinatorDashboard">
                 <!-- Coordinator dashboard content will be populated by JavaScript -->
             </div>
         </section>
 
         <!-- Team/Participant Section -->
-        <section id="teamSection" class="game-card" style="display: none;">
+        <section id="teamSection" class="section" style="display: none;">
             <div id="teamDisplay">
                 <!-- Team dashboard content will be populated by JavaScript -->
             </div>
         </section>
 
         <!-- Mapping Interface Section -->
-        <section id="mappingSection" class="game-card" style="display: none;">
+        <section id="mappingSection" class="section" style="display: none;">
             <div id="mappingDisplay">
                 <!-- Mapping interface content will be populated by JavaScript -->
             </div>
@@ -82,8 +95,8 @@
         </div>
         
         <footer class="footer">
-            <p>Grid Tycoon v3.0 | Powered by OpenStreetMap & JOSM | Built for Power Infrastructure Mapping</p>
-            <p><small>🔗 GitHub Pages Compatible • 📡 JOSM Integration • 🗺️ OpenStreetMap Data • 👨‍💼 Coordinator Dashboard</small></p>
+            <p>Grid Tycoon v3.0 | Powered by OpenStreetMap & JOSM</p>
+            <p class="footer-meta">Built for Power Infrastructure Mapping</p>
         </footer>
     </div>
 

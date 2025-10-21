@@ -451,29 +451,38 @@ async showParticipantDashboard() {
 
 async showMappingInterface() {
     if (!this.currentTeam || !this.currentTerritories) return;
-    
+
     this.showStatus('info', 'Loading mapping interface...', true);
-    
+
     const completedCount = this.getCompletedCount();
     const availableCount = this.getAvailableCount();
     const progressPercentage = this.getProgressPercentage();
-    
+
     const mappingHtml = `
         <div class="mapping-interface">
-            <h2>Mapping Interface - ${this.currentTeam.team_name}</h2>
+            <!-- Subheader with Team Name and Navigation -->
+            <div class="mapping-subheader" style="background: rgba(37, 99, 235, 0.05); padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(37, 99, 235, 0.1);">
+                <h2 style="margin: 0; color: #1F2937; font-size: 1.5rem;">${this.currentTeam.team_name}</h2>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-primary" onclick="app.showTeammatesModal()">
+                        View Teammates
+                    </button>
+                    <button class="btn btn-secondary" onclick="app.showParticipantDashboard()">
+                        Back to Dashboard
+                    </button>
+                    <button class="btn btn-info" onclick="app.refreshTerritories()">
+                        Refresh Territories
+                    </button>
+                </div>
+            </div>
 
             <!-- Territory Map at Top -->
-            <div class="territory-map-container" style="background: white; padding: 20px; border-radius: 15px; margin: 20px 0; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
-                <h3 style="margin-bottom: 15px; color: #2c3e50;">
-                    🗺️ Your Team's Territory Map
-                    <button class="btn btn-info" onclick="app.toggleMapView()" style="float: right; padding: 8px 15px; font-size: 14px;">
-                        Toggle Map/List
-                    </button>
-                </h3>
+            <div class="territory-map-container">
+                <h3 style="margin-bottom: 15px; color: #1F2937;">Territory Map</h3>
                 <div id="territoryMap" style="height: 500px; border-radius: 10px; border: 2px solid #ddd;"></div>
             </div>
 
-            <div class="team-progress-summary" style="background: rgba(52, 152, 219, 0.1); padding: 20px; border-radius: 15px; margin: 20px 0;">
+            <div class="team-progress-summary">
                 <h3>Team Progress Summary</h3>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 15px 0;">
                     <div style="text-align: center;">
@@ -494,12 +503,12 @@ async showMappingInterface() {
                     </div>
                 </div>
             </div>
-            
+
             <div class="territories-list-container" id="territoriesListContainer">
-                <h3>Your Assigned Territories (List View)</h3>
-                
+                <h3>Your Assigned Territories</h3>
+
                 ${this.currentTerritories.length === 0 ? `
-                    <div class="no-territories" style="text-align: center; padding: 40px; background: rgba(255,193,7,0.1); border-radius: 15px;">
+                    <div class="no-territories">
                         <p>No territories assigned yet. Wait for coordinator to assign territories.</p>
                     </div>
                 ` : `
@@ -508,31 +517,16 @@ async showMappingInterface() {
                     </div>
                 `}
             </div>
-            
-            <div class="mapping-controls" style="text-align: center; margin: 30px 0;">
-                <button class="btn btn-primary" onclick="app.showTeammatesModal()">
-                    👥 View Teammates
-                </button>
-                <button class="btn btn-secondary" onclick="app.showParticipantDashboard()">
-                    Back to Team Dashboard
-                </button>
-                <button class="btn btn-info" onclick="app.refreshTerritories()">
-                    Refresh Territories
-                </button>
-                <button class="btn btn-warning" onclick="app.checkJOSMStatus()">
-                    Check JOSM Status
-                </button>
-            </div>
         </div>
     `;
-    
+
     this.showSection('mappingSection', mappingHtml);
-    
+
     // Initialize map after DOM is ready
     setTimeout(() => {
         this.initializeTerritoryMap();
     }, 100);
-    
+
     this.showStatus('success', `Loaded ${this.currentTerritories.length} territories for your team.`);
 }
 
@@ -583,24 +577,19 @@ toggleMapView() {
 
 renderTerritoryCard(territory) {
     return `
-        <div class="territory-item ${territory.status}" data-territory-id="${territory.id}" style="background: white; border-radius: 10px; padding: 20px; margin: 15px 0; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
-            <div class="territory-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h4 style="margin: 0; color: #2c3e50;">${territory.territory_name}</h4>
-                <span class="territory-status-badge status-${territory.status}" style="padding: 5px 12px; border-radius: 20px; font-size: 0.9em; font-weight: bold; ${this.getStatusBadgeStyle(territory.status)}">
+        <div class="territory-item ${territory.status}" data-territory-id="${territory.id}">
+            <div class="territory-header">
+                <h4>${territory.territory_name}</h4>
+                <span class="territory-status-badge status-${territory.status}" style="${this.getStatusBadgeStyle(territory.status)}">
                     ${this.getStatusText(territory.status)}
                 </span>
             </div>
-            
-            <div class="territory-details" style="margin: 15px 0; color: #555;">
-                <p><strong>ISO Code:</strong> ${territory.iso_code || 'N/A'}</p>
-                <p><strong>Type:</strong> ${territory.place_type || 'State'}</p>
-                <p><strong>OSM Relation ID:</strong> ${territory.territory_osm_id || 'Not available'}</p>
-                <p><strong>Overpass Ready:</strong> ${territory.overpass_ready ? 'Yes' : 'No'}</p>
-                ${territory.completed_at ? `<p><strong>Completed:</strong> ${new Date(territory.completed_at).toLocaleString()}</p>` : ''}
-                ${territory.notes ? `<p><strong>Notes:</strong> ${territory.notes}</p>` : ''}
+            ${territory.notes ? `
+            <div class="territory-details">
+                <p><strong>Notes:</strong> ${territory.notes}</p>
             </div>
-            
-            <div class="territory-actions" style="display: flex; gap: 10px; flex-wrap: wrap;">
+            ` : ''}
+            <div class="territory-actions">
                 ${this.renderTerritoryActions(territory)}
             </div>
         </div>
