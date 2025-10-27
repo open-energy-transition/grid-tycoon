@@ -217,7 +217,9 @@ body:not(:has(.registration-page:not([style*="display: none"]))) .header-brand {
 }
 
 .header-brand {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
     font-size: var(--font-size-2xl);
     font-weight: 700;
     color: white;
@@ -227,6 +229,18 @@ body:not(:has(.registration-page:not([style*="display: none"]))) .header-brand {
     cursor: pointer;
     position: relative;
     text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+.header-logo {
+    height: 48px;
+    width: auto;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.8))
+            drop-shadow(0 0 20px rgba(255, 255, 255, 0.3));
+    background: rgba(255, 255, 255, 0.15);
+    padding: 0.5rem;
+    border-radius: var(--radius-md);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .header-brand:hover {
@@ -1129,6 +1143,21 @@ body:has(#mappingSection:not([style*="display: none"])) {
     color: white;
     text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
     letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.nav-logo {
+    height: 56px;
+    width: auto;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.8))
+            drop-shadow(0 0 20px rgba(255, 255, 255, 0.3));
+    background: rgba(255, 255, 255, 0.15);
+    padding: 0.5rem;
+    border-radius: var(--radius-md);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .nav-links {
@@ -1194,6 +1223,16 @@ body:has(#mappingSection:not([style*="display: none"])) {
     padding: 2rem;
 }
 
+.landing-hero-logo {
+    width: auto;
+    max-width: 500px;
+    height: auto;
+    filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.9))
+            drop-shadow(0 0 40px rgba(255, 255, 255, 0.3));
+    margin-bottom: 0;
+    animation: fadeInUp 0.8s ease-out;
+}
+
 .landing-title {
     font-size: 5rem;
     font-weight: 800;
@@ -1202,17 +1241,17 @@ body:has(#mappingSection:not([style*="display: none"])) {
     letter-spacing: -0.03em;
     text-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
     line-height: 1.1;
-    animation: fadeInUp 0.8s ease-out;
+    animation: fadeInUp 0.8s ease-out 0.2s backwards;
 }
 
 .landing-subtitle {
     font-size: 1.5rem;
     font-weight: 400;
     color: white;
-    margin-top: 1rem;
+    margin-top: 0;
     opacity: 0.95;
     text-shadow: 0 2px 10px rgba(0, 0, 0, 0.7);
-    animation: fadeInUp 0.8s ease-out 0.2s backwards;
+    animation: fadeInUp 0.8s ease-out 0.4s backwards;
 }
 
 @keyframes fadeInUp {
@@ -1256,6 +1295,10 @@ body:has(#mappingSection:not([style*="display: none"])) {
         font-size: var(--font-size-xl);
     }
 
+    .header-logo {
+        height: 40px;
+    }
+
     /* Registration page header */
     body:has(.registration-page:not([style*="display: none"])) .header {
         padding: var(--spacing-md);
@@ -1285,12 +1328,20 @@ body:has(#mappingSection:not([style*="display: none"])) {
         font-size: 1.25rem;
     }
 
+    .nav-logo {
+        height: 44px;
+    }
+
     .nav-links {
         gap: 1rem;
     }
 
     .nav-link {
         font-size: 0.9rem;
+    }
+
+    .landing-hero-logo {
+        max-width: 350px;
     }
 
     .landing-title {
@@ -1372,6 +1423,10 @@ body:has(#mappingSection:not([style*="display: none"])) {
         font-size: var(--font-size-lg);
     }
 
+    .header-logo {
+        height: 32px;
+    }
+
     /* Registration page header */
     body:has(.registration-page:not([style*="display: none"])) .header {
         padding: var(--spacing-sm);
@@ -1409,6 +1464,15 @@ body:has(#mappingSection:not([style*="display: none"])) {
 
     .nav-link {
         font-size: 0.875rem;
+    }
+
+    .nav-logo {
+        height: 32px;
+    }
+
+    .landing-hero-logo {
+        max-width: 280px;
+        margin-bottom: 0;
     }
 
     .landing-title {

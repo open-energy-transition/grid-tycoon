@@ -6,6 +6,7 @@
     <title>Grid Tycoon - Master India's Power Grid</title>
     <meta name="description" content="Interactive game for mapping India's power infrastructure using OpenStreetMap and JOSM">
     <meta name="keywords" content="OpenStreetMap, JOSM, power grid, India, mapping, game">
+    <link rel="icon" type="image/png" href="media/logo/logo.png">
     <link rel="stylesheet" href="css/styles.css">
 
     <!-- Leaflet CSS for Map Visualization -->
@@ -18,7 +19,10 @@
     <section id="landingSection" class="landing-section">
         <!-- Minimal Navigation Header -->
         <nav class="landing-nav">
-            <div class="nav-brand">Grid Tycoon</div>
+            <div class="nav-brand">
+                <img src="media/logo/logo.png" alt="Grid Tycoon Logo" class="nav-logo">
+                <span>Grid Tycoon</span>
+            </div>
             <div class="nav-links">
                 <a href="#resources" class="nav-link" onclick="app.showResourcesModal(); return false;">Resources</a>
                 <a href="https://mapyourgrid.org" target="_blank" rel="noopener noreferrer" class="nav-link">MapYourGrid</a>
@@ -28,6 +32,7 @@
 
         <!-- Centered Overlay Content -->
         <div class="landing-content">
+            <img src="media/logo/logo.png" alt="Grid Tycoon Logo" class="landing-hero-logo">
             <h1 class="landing-title">Master India's Power Grid</h1>
             <p class="landing-subtitle">Collaborative mapping through OpenStreetMap</p>
         </div>
@@ -37,7 +42,8 @@
         <header class="header" style="display: none;">
             <div class="header-nav">
                 <a href="#home" class="header-brand" onclick="app.returnToLanding(); return false;">
-                    Grid Tycoon
+                    <img src="media/logo/logo.png" alt="Grid Tycoon Logo" class="header-logo">
+                    <span>Grid Tycoon</span>
                 </a>
                 <div class="header-nav-links" id="headerNavLinks">
                     <!-- Navigation buttons will be populated by JavaScript -->
