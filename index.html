@@ -14,14 +14,39 @@
           crossorigin=""/>
 </head>
 <body>
+    <!-- Landing Page Section (Full Screen) -->
+    <section id="landingSection" class="landing-section">
+        <!-- Minimal Navigation Header -->
+        <nav class="landing-nav">
+            <div class="nav-brand">Grid Tycoon</div>
+            <div class="nav-links">
+                <a href="#resources" class="nav-link" onclick="app.showResourcesModal(); return false;">Resources</a>
+                <a href="https://mapyourgrid.org" target="_blank" rel="noopener noreferrer" class="nav-link">MapYourGrid</a>
+                <a href="#get-started" class="nav-link nav-link-primary" onclick="app.showRegistrationFromLanding(); return false;">Get Started</a>
+            </div>
+        </nav>
+
+        <!-- Centered Overlay Content -->
+        <div class="landing-content">
+            <h1 class="landing-title">Master India's Power Grid</h1>
+            <p class="landing-subtitle">Collaborative mapping through OpenStreetMap</p>
+        </div>
+    </section>
+
     <div class="container">
-        <header class="header">
-            <h1 class="title">Grid Tycoon</h1>
-            <p class="subtitle">India's Power Infrastructure Mapping Platform</p>
+        <header class="header" style="display: none;">
+            <div class="header-nav">
+                <a href="#home" class="header-brand" onclick="app.returnToLanding(); return false;">
+                    Grid Tycoon
+                </a>
+                <div class="header-nav-links" id="headerNavLinks">
+                    <!-- Navigation buttons will be populated by JavaScript -->
+                </div>
+            </div>
         </header>
 
         <!-- Registration Section -->
-        <section id="registrationSection" class="section">
+        <section id="registrationSection" class="section registration-page" style="display: none;">
             <div class="section-header">
                 <h2>Join Mapping Session</h2>
                 <p class="section-description">
@@ -93,11 +118,6 @@
                 </div>
             </div>
         </div>
-        
-        <footer class="footer">
-            <p>Grid Tycoon v3.0 | Powered by OpenStreetMap & JOSM</p>
-            <p class="footer-meta">Built for Power Infrastructure Mapping</p>
-        </footer>
     </div>
 
     <!-- Configuration -->

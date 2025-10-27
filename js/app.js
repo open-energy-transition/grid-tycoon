@@ -306,16 +306,19 @@ async setupCompleteSession() {
 
 async handleParticipantLogin() {
     const { firstName, osmUsername, sessionId } = this.currentUser;
-    
+
     try {
         const userResult = await this.supabaseManager.getUserByOSMUsername(osmUsername, sessionId);
-        
+
         if (userResult.success && userResult.data.user) {
             const teamResult = await this.supabaseManager.getUserTeamInfo(userResult.data.user.id);
-            
+
             if (teamResult.success && teamResult.data.teamInfo) {
                 this.currentTeam = teamResult.data.teamInfo;
-                await this.showParticipantDashboard();
+                // Get territories before showing mapping interface
+                const territoriesResult = await this.supabaseManager.getTeamTerritories(this.currentTeam.id);
+                this.currentTerritories = territoriesResult.success ? territoriesResult.data.territories : [];
+                await this.showMappingInterface();
             } else {
                 this.showWaitingForTeam();
             }
@@ -350,7 +353,7 @@ showWaitingForTeam() {
     const waitingHtml = `
         <div class="participant-waiting">
             <h2>Registration Complete!</h2>
-            <div class="user-info" style="background: rgba(52, 152, 219, 0.1); padding: 20px; border-radius: 15px; margin: 20px 0;">
+            <div class="user-info" style="background: rgba(107, 142, 143, 0.1); padding: 20px; border-radius: 15px; margin: 20px 0;">
                 <p><strong>Name:</strong> ${this.currentUser.firstName}</p>
                 <p><strong>OSM Username:</strong> ${this.currentUser.osmUsername}</p>
                 <p><strong>Session ID:</strong> ${this.currentUser.sessionId}</p>
@@ -400,7 +403,7 @@ async showParticipantDashboard() {
                         ${this.currentTeam.members.map(member => {
                             const isYou = member.participants.osm_username === this.currentUser.osmUsername;
                             return `
-                                <div class="team-member-compact" style="display: flex; align-items: center; margin: 8px 0; padding: 8px; border-radius: 5px; ${isYou ? 'background: rgba(255,215,0,0.2); font-weight: bold;' : 'background: rgba(255,255,255,0.05);'}">
+                                <div class="team-member-compact" style="display: flex; align-items: center; margin: 8px 0; padding: 8px; border-radius: 5px; ${isYou ? 'background: rgba(212, 165, 116, 0.3); font-weight: bold;' : 'background: rgba(255,255,255,0.05);'}">
                                     <span class="role-icon" style="margin-right: 10px; font-size: 1.2em;">${member.role_icon}</span>
                                     <strong>${member.participants.first_name}</strong> (${member.role_name})
                                     ${isYou ? ' - YOU' : ''}
@@ -413,7 +416,7 @@ async showParticipantDashboard() {
                         <h4>Team Progress:</h4>
                         <p><strong>${completedCount}/${this.currentTerritories.length}</strong> territories completed</p>
                         <div class="progress-bar" style="background: #eee; height: 25px; border-radius: 10px; margin: 10px 0; overflow: hidden;">
-                            <div class="progress-fill" style="width: ${progressPercentage}%; height: 100%; background: linear-gradient(45deg, #27ae60, #2ecc71); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; transition: width 0.3s;">
+                            <div class="progress-fill" style="width: ${progressPercentage}%; height: 100%; background: linear-gradient(45deg, #7D8F69, #9BAA88); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; transition: width 0.3s;">
                                 ${Math.round(progressPercentage)}% Complete
                             </div>
                         </div>
@@ -460,22 +463,6 @@ async showMappingInterface() {
 
     const mappingHtml = `
         <div class="mapping-interface">
-            <!-- Subheader with Team Name and Navigation -->
-            <div class="mapping-subheader" style="background: rgba(37, 99, 235, 0.05); padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(37, 99, 235, 0.1);">
-                <h2 style="margin: 0; color: #1F2937; font-size: 1.5rem;">${this.currentTeam.team_name}</h2>
-                <div style="display: flex; gap: 10px;">
-                    <button class="btn btn-primary" onclick="app.showTeammatesModal()">
-                        View Teammates
-                    </button>
-                    <button class="btn btn-secondary" onclick="app.showParticipantDashboard()">
-                        Back to Dashboard
-                    </button>
-                    <button class="btn btn-info" onclick="app.refreshTerritories()">
-                        Refresh Territories
-                    </button>
-                </div>
-            </div>
-
             <!-- Territory Map at Top -->
             <div class="territory-map-container">
                 <h3 style="margin-bottom: 15px; color: #1F2937;">Territory Map</h3>
@@ -486,19 +473,19 @@ async showMappingInterface() {
                 <h3>Team Progress Summary</h3>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 15px 0;">
                     <div style="text-align: center;">
-                        <div style="font-size: 2em; font-weight: bold; color: #3498db;">${this.currentTerritories.length}</div>
+                        <div style="font-size: 2em; font-weight: bold; color: #6B8E8F;">${this.currentTerritories.length}</div>
                         <div>Total Territories</div>
                     </div>
                     <div style="text-align: center;">
-                        <div style="font-size: 2em; font-weight: bold; color: #27ae60;">${completedCount}</div>
+                        <div style="font-size: 2em; font-weight: bold; color: #7D8F69;">${completedCount}</div>
                         <div>Completed</div>
                     </div>
                     <div style="text-align: center;">
-                        <div style="font-size: 2em; font-weight: bold; color: #f39c12;">${availableCount}</div>
+                        <div style="font-size: 2em; font-weight: bold; color: #D4A574;">${availableCount}</div>
                         <div>Available</div>
                     </div>
                     <div style="text-align: center;">
-                        <div style="font-size: 2em; font-weight: bold; color: #3498db;">${Math.round(progressPercentage)}%</div>
+                        <div style="font-size: 2em; font-weight: bold; color: #C4704F;">${Math.round(progressPercentage)}%</div>
                         <div>Progress</div>
                     </div>
                 </div>
@@ -521,6 +508,13 @@ async showMappingInterface() {
     `;
 
     this.showSection('mappingSection', mappingHtml);
+
+    // Update header with navigation buttons
+    this.updateHeaderNavigation([
+        { label: 'Team', class: 'btn-primary', onclick: 'app.showTeammatesModal()' },
+        { label: 'Refresh', class: 'btn-info', onclick: 'app.refreshTerritories()' },
+        { label: 'Logout', class: 'btn-warning', onclick: 'app.logout()' }
+    ]);
 
     // Initialize map after DOM is ready
     setTimeout(() => {
@@ -687,11 +681,11 @@ showJOSMTroubleshootingModal(errorMessage) {
         <div style="max-width: 600px;">
             <h3 style="color: #e74c3c;">JOSM Connection Issue</h3>
             
-            <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #f39c12;">
+            <div style="background: #F7EFE3; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #D4A574;">
                 <strong>Error:</strong> ${errorMessage}
             </div>
-            
-            <div style="background: #e8f4f8; padding: 20px; border-radius: 10px; margin: 20px 0;">
+
+            <div style="background: #E5EEEE; padding: 20px; border-radius: 10px; margin: 20px 0;">
                 <h4>Troubleshooting Steps:</h4>
                 <ol style="line-height: 1.8;">
                     <li><strong>Is JOSM running?</strong> Make sure JOSM is open on your computer.</li>
@@ -824,27 +818,27 @@ handleMockMode() {
 
     this.currentTeam = mockTeam;
     this.currentTerritories = [
-        { 
-            id: 't1', 
-            territory_name: 'Maharashtra', 
-            status: 'available', 
-            territory_osm_id: 1656179, 
+        {
+            id: 't1',
+            territory_name: 'Maharashtra',
+            status: 'available',
+            territory_osm_id: 1656179,
             overpass_ready: true,
             iso_code: 'IN-MH',
             place_type: 'state'
         },
-        { 
-            id: 't2', 
-            territory_name: 'Karnataka', 
-            status: 'available', 
-            territory_osm_id: 1656160, 
+        {
+            id: 't2',
+            territory_name: 'Karnataka',
+            status: 'available',
+            territory_osm_id: 1656160,
             overpass_ready: true,
             iso_code: 'IN-KA',
             place_type: 'state'
         }
     ];
-    
-    this.showParticipantDashboard();
+
+    this.showMappingInterface();
     this.showStatus('success', 'Mock registration successful! Test the mapping interface.');
 }
 
@@ -917,12 +911,12 @@ getTeamFormationInfo(participantCount) {
 getStatusBadgeStyle(status) {
     switch (status) {
         case 'completed':
-            return 'background: #27ae60; color: white;';
+            return 'background: #7D8F69; color: white;';
         case 'current':
-            return 'background: #3498db; color: white;';
+            return 'background: #C4704F; color: white;';
         case 'available':
         default:
-            return 'background: #f39c12; color: white;';
+            return 'background: #D4A574; color: white;';
     }
 }
 
@@ -943,7 +937,12 @@ getStatusText(status) {
 // ================================
 
 async refreshParticipantStatus() {
-    await this.handleParticipantLogin();
+    if (this.currentTeam) {
+        this.showStatus('info', 'Refreshing...', true);
+        await this.showMappingInterface();
+    } else {
+        await this.handleParticipantLogin();
+    }
 }
 
 async refreshTerritories() {
@@ -963,23 +962,194 @@ async refreshCoordinatorDashboard() {
 // UI MANAGEMENT
 // ================================
 
-showSection(sectionId, content = null) {
+updateHeaderNavigation(buttons = []) {
+    const headerNavLinks = document.getElementById('headerNavLinks');
+    if (!headerNavLinks) return;
+
+    if (buttons.length === 0) {
+        // Clear navigation
+        headerNavLinks.innerHTML = '';
+        headerNavLinks.style.display = 'none';
+    } else {
+        // Populate with buttons
+        headerNavLinks.innerHTML = buttons.map(btn =>
+            `<button class="btn ${btn.class}" onclick="${btn.onclick}">${btn.label}</button>`
+        ).join('');
+        headerNavLinks.style.display = 'flex';
+    }
+}
+
+returnToLanding() {
+    // Confirm if user wants to go back (if they're logged in)
+    if (this.currentUser) {
+        const confirm = window.confirm('Return to landing page? You will be logged out.');
+        if (!confirm) return;
+    }
+
+    // Clear all state
+    sessionStorage.removeItem('gridTycoonUser');
+    this.currentUser = null;
+    this.currentTeam = null;
+    this.currentTerritories = [];
+    this.isCoordinator = false;
+
+    // Clear header navigation
+    this.updateHeaderNavigation();
+
+    if (this.territoryMap) {
+        this.territoryMap.destroy();
+        this.territoryMap = null;
+    }
+
+    // Clear input fields
+    const inputs = ['firstNameInput', 'osmUsernameInput', 'sessionIdInput'];
+    inputs.forEach(id => {
+        const input = document.getElementById(id);
+        if (input) input.value = '';
+    });
+
+    // Hide all sections and header
     const sections = ['registrationSection', 'coordinatorSection', 'teamSection', 'mappingSection'];
+    sections.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) element.style.display = 'none';
+    });
+
+    const header = document.querySelector('.header');
+    if (header) header.style.display = 'none';
+
+    // Show landing page
+    const landingSection = document.getElementById('landingSection');
+    if (landingSection) {
+        landingSection.style.display = 'flex';
+        this.currentSection = 'landing';
+    }
+
+    // Hide status messages
+    const statusDiv = document.getElementById('statusDiv');
+    if (statusDiv) statusDiv.style.display = 'none';
+}
+
+showRegistrationFromLanding() {
+    const landingSection = document.getElementById('landingSection');
+    const registrationSection = document.getElementById('registrationSection');
+    const header = document.querySelector('.header');
+
+    if (landingSection) {
+        landingSection.style.display = 'none';
+    }
+
+    if (header) {
+        header.style.display = 'block';
+    }
+
+    if (registrationSection) {
+        registrationSection.style.display = 'block';
+        this.currentSection = 'registration';
+
+        // Focus on first input field
+        const firstNameInput = document.getElementById('firstNameInput');
+        if (firstNameInput) {
+            firstNameInput.focus();
+        }
+    }
+}
+
+showResourcesModal() {
+    const modalContent = `
+        <div style="max-width: 700px;">
+            <h2 style="color: #2c3e50; margin-bottom: 1.5rem;">Resources</h2>
+
+            <div style="margin-bottom: 2rem;">
+                <p style="font-size: 1.1rem; line-height: 1.7; color: #555;">
+                    Explore helpful resources to get started with power infrastructure mapping and learn more about the Grid Tycoon project.
+                </p>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                <a href="https://mapyourgrid.org" target="_blank" rel="noopener noreferrer"
+                   style="display: flex; align-items: center; gap: 1rem; padding: 1.25rem; background: #f8f9fa; border-radius: 8px; text-decoration: none; color: #2c3e50; border: 1px solid #e0e0e0; transition: all 0.3s ease;">
+                    <span style="font-size: 2rem;">🌐</span>
+                    <div>
+                        <div style="font-weight: 600; font-size: 1.1rem; margin-bottom: 0.25rem;">MapYourGrid.org</div>
+                        <div style="color: #666; font-size: 0.9rem;">Learn about grid mapping and the power infrastructure project</div>
+                    </div>
+                </a>
+
+                <a href="https://www.openstreetmap.org" target="_blank" rel="noopener noreferrer"
+                   style="display: flex; align-items: center; gap: 1rem; padding: 1.25rem; background: #f8f9fa; border-radius: 8px; text-decoration: none; color: #2c3e50; border: 1px solid #e0e0e0; transition: all 0.3s ease;">
+                    <span style="font-size: 2rem;">🗺️</span>
+                    <div>
+                        <div style="font-weight: 600; font-size: 1.1rem; margin-bottom: 0.25rem;">OpenStreetMap</div>
+                        <div style="color: #666; font-size: 0.9rem;">Explore the collaborative map of the world</div>
+                    </div>
+                </a>
+
+                <a href="https://josm.openstreetmap.de" target="_blank" rel="noopener noreferrer"
+                   style="display: flex; align-items: center; gap: 1rem; padding: 1.25rem; background: #f8f9fa; border-radius: 8px; text-decoration: none; color: #2c3e50; border: 1px solid #e0e0e0; transition: all 0.3s ease;">
+                    <span style="font-size: 2rem;">🛠️</span>
+                    <div>
+                        <div style="font-weight: 600; font-size: 1.1rem; margin-bottom: 0.25rem;">JOSM Editor</div>
+                        <div style="color: #666; font-size: 0.9rem;">Download the Java OpenStreetMap Editor for mapping</div>
+                    </div>
+                </a>
+
+                <a href="https://wiki.openstreetmap.org/wiki/Power" target="_blank" rel="noopener noreferrer"
+                   style="display: flex; align-items: center; gap: 1rem; padding: 1.25rem; background: #f8f9fa; border-radius: 8px; text-decoration: none; color: #2c3e50; border: 1px solid #e0e0e0; transition: all 0.3s ease;">
+                    <span style="font-size: 2rem;">📚</span>
+                    <div>
+                        <div style="font-weight: 600; font-size: 1.1rem; margin-bottom: 0.25rem;">OSM Power Tagging</div>
+                        <div style="color: #666; font-size: 0.9rem;">Learn how to tag power infrastructure in OpenStreetMap</div>
+                    </div>
+                </a>
+            </div>
+
+            <div style="text-align: center; margin-top: 2rem;">
+                <button class="btn btn-secondary" onclick="app.closeModal()">Close</button>
+            </div>
+        </div>
+    `;
+
+    this.showModal(modalContent);
+}
+
+showSection(sectionId, content = null) {
+    const sections = ['landingSection', 'registrationSection', 'coordinatorSection', 'teamSection', 'mappingSection'];
     sections.forEach(id => {
         const element = document.getElementById(id);
         if (element) {
             element.style.display = 'none';
         }
     });
-    
+
     const targetSection = document.getElementById(sectionId);
     if (targetSection) {
-        targetSection.style.display = 'block';
+        // Landing section needs flex display for proper layout
+        if (sectionId === 'landingSection') {
+            targetSection.style.display = 'flex';
+        } else {
+            targetSection.style.display = 'block';
+        }
         this.currentSection = sectionId;
-        
+
         if (content) {
             const contentContainer = targetSection.querySelector('div') || targetSection;
             contentContainer.innerHTML = content;
+        }
+    }
+
+    // Clear header navigation if not on mapping section
+    if (sectionId !== 'mappingSection') {
+        this.updateHeaderNavigation();
+    }
+
+    // Show/hide header based on section
+    const header = document.querySelector('.header');
+    if (header) {
+        if (sectionId === 'landingSection') {
+            header.style.display = 'none';
+        } else {
+            header.style.display = 'block';
         }
     }
 }
@@ -1037,29 +1207,7 @@ showStatus(type, message, loading = false) {
 }
 
 logout() {
-    sessionStorage.removeItem('gridTycoonUser');
-    this.currentUser = null;
-    this.currentTeam = null;
-    this.currentTerritories = [];
-    this.isCoordinator = false;
-    
-    if (this.territoryMap) {
-        this.territoryMap.destroy();
-        this.territoryMap = null;
-    }
-    
-    this.showSection('registrationSection');
-    
-    const inputs = ['firstNameInput', 'osmUsernameInput', 'sessionIdInput'];
-    inputs.forEach(id => {
-        const input = document.getElementById(id);
-        if (input) input.value = '';
-    });
-    
-    const statusDiv = document.getElementById('statusDiv');
-    if (statusDiv) statusDiv.style.display = 'none';
-    
-    this.showStatus('info', 'Logged out successfully.');
+    this.returnToLanding();
 }
 
 getDefaultConfig() {
@@ -1100,7 +1248,7 @@ renderCoordinatorDashboard({ sessionId, user, participants, progress, teamFormat
 
             <div class="team-formation-status">
                 <h4>Team Formation Status</h4>
-                <div class="status-card ${teamFormationInfo.canFormTeams ? 'status-ready' : 'status-waiting'}" style="background: ${teamFormationInfo.canFormTeams ? 'rgba(39, 174, 96, 0.1)' : 'rgba(243, 156, 18, 0.1)'}; padding: 15px; border-radius: 10px; margin: 15px 0;">
+                <div class="status-card ${teamFormationInfo.canFormTeams ? 'status-ready' : 'status-waiting'}" style="background: ${teamFormationInfo.canFormTeams ? 'rgba(125, 143, 105, 0.1)' : 'rgba(212, 165, 116, 0.1)'}; padding: 15px; border-radius: 10px; margin: 15px 0;">
                     <p><strong>${teamFormationInfo.title}</strong></p>
                     <p>${teamFormationInfo.description}</p>
                     ${teamFormationInfo.details ? `<small>${teamFormationInfo.details}</small>` : ''}
@@ -1196,21 +1344,21 @@ async viewParticipants() {
                 <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; text-align: center;">
                         <div>
-                            <div style="font-size: 1.5em; font-weight: bold; color: #3498db;">${participants.length}</div>
+                            <div style="font-size: 1.5em; font-weight: bold; color: #6B8E8F;">${participants.length}</div>
                             <div>Total Participants</div>
                         </div>
                         <div>
-                            <div style="font-size: 1.5em; font-weight: bold; color: ${data.team_formation_ready ? '#27ae60' : '#e74c3c'};">
+                            <div style="font-size: 1.5em; font-weight: bold; color: ${data.team_formation_ready ? '#7D8F69' : '#B85C5C'};">
                                 ${data.team_formation_ready ? 'Ready' : 'Not Ready'}
                             </div>
                             <div>Team Formation</div>
                         </div>
                         <div>
-                            <div style="font-size: 1.5em; font-weight: bold; color: #f39c12;">${Math.floor(participants.length / 3)}</div>
+                            <div style="font-size: 1.5em; font-weight: bold; color: #D4A574;">${Math.floor(participants.length / 3)}</div>
                             <div>Complete Teams</div>
                         </div>
                         <div>
-                            <div style="font-size: 1.5em; font-weight: bold; color: #9b59b6;">${participants.filter(p => p.team_assigned).length}</div>
+                            <div style="font-size: 1.5em; font-weight: bold; color: #8B7355;">${participants.filter(p => p.team_assigned).length}</div>
                             <div>Assigned</div>
                         </div>
                     </div>
@@ -1219,7 +1367,7 @@ async viewParticipants() {
                 <div style="margin: 20px 0;">
                     <h4>All Participants</h4>
                     ${participants.length === 0 ? `
-                        <div style="text-align: center; padding: 40px; background: #fff3cd; border-radius: 8px; color: #856404;">
+                        <div style="text-align: center; padding: 40px; background: #F7EFE3; border-radius: 8px; color: #6B5D4F;">
                             No participants registered yet.
                         </div>
                     ` : `
@@ -1242,8 +1390,8 @@ async viewParticipants() {
                                             <td style="padding: 8px; font-weight: 500;">${participant.first_name}</td>
                                             <td style="padding: 8px; font-family: monospace; color: #666;">@${participant.osm_username}</td>
                                             <td style="padding: 8px;">
-                                                ${participant.team_assigned ? 
-                                                    `<span style="background: #27ae60; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8em;">${participant.team_name}</span>` : 
+                                                ${participant.team_assigned ?
+                                                    `<span style="background: #7D8F69; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8em;">${participant.team_name}</span>` :
                                                     '<span style="color: #999;">Unassigned</span>'
                                                 }
                                             </td>
@@ -1291,7 +1439,7 @@ showTeammatesModal() {
 
     const modalContent = `
         <div style="max-width: 600px;">
-            <h3 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;">
+            <h3 style="color: #2c3e50; border-bottom: 2px solid #C4704F; padding-bottom: 10px;">
                 👥 ${this.currentTeam.team_name} Members
             </h3>
 
@@ -1307,11 +1455,11 @@ showTeammatesModal() {
                 ${this.currentTeam.members.map(member => {
                     const isYou = member.participants.osm_username === this.currentUser.osmUsername;
                     return `
-                        <div style="background: ${isYou ? 'rgba(52, 152, 219, 0.1)' : 'white'};
+                        <div style="background: ${isYou ? 'rgba(196, 112, 79, 0.1)' : 'white'};
                                     padding: 15px;
                                     margin: 10px 0;
                                     border-radius: 8px;
-                                    border-left: 4px solid ${isYou ? '#3498db' : '#ddd'};
+                                    border-left: 4px solid ${isYou ? '#C4704F' : '#ddd'};
                                     ${isYou ? 'box-shadow: 0 2px 4px rgba(0,0,0,0.1);' : ''}">
                             <div style="display: flex; align-items: center; justify-content: space-between;">
                                 <div style="display: flex; align-items: center; gap: 10px;">
@@ -1319,13 +1467,13 @@ showTeammatesModal() {
                                     <div>
                                         <div style="font-weight: bold; font-size: 1.1em;">
                                             ${member.participants.first_name}
-                                            ${isYou ? '<span style="background: #3498db; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.7em; margin-left: 8px;">YOU</span>' : ''}
+                                            ${isYou ? '<span style="background: #C4704F; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.7em; margin-left: 8px;">YOU</span>' : ''}
                                         </div>
                                         <div style="color: #666; font-size: 0.9em;">@${member.participants.osm_username}</div>
                                     </div>
                                 </div>
                                 <div style="text-align: right;">
-                                    <div style="font-weight: bold; color: #3498db;">${member.role_name}</div>
+                                    <div style="font-weight: bold; color: #C4704F;">${member.role_name}</div>
                                     <div style="font-size: 0.85em; color: #666;">${member.role_description}</div>
                                 </div>
                             </div>

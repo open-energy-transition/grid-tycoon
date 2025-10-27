@@ -121,6 +121,7 @@ class TerritoryMap {
 
     /**
      * Display territories on the map (team's assigned territories)
+     * Two-phase loading: show circles immediately, then upgrade to polygons
      * @param {Array} territories - Territory assignment data from database
      * @param {object} teamInfo - Team information for styling
      */
@@ -133,21 +134,52 @@ class TerritoryMap {
         console.log(`Displaying ${territories.length} territories for team`, teamInfo.team_name || 'Unknown');
 
         this.currentTerritories = territories;
+        this.currentTeam = teamInfo;
         this.teamColor = this.getTeamColor(teamInfo.team_index || 0);
 
         // Clear existing territories
         this.territoriesLayer.clearLayers();
         this.markers.clear();
 
-        // Add each territory as a marker
+        // PHASE 1: Add circle markers immediately (fast, synchronous)
         let markersAdded = 0;
         territories.forEach(territory => {
-            if (this.addTerritoryMarker(territory, teamInfo)) {
-                markersAdded++;
+            const coords = this.getTerritoryCoordinates(territory.iso_code);
+
+            if (!coords) {
+                console.warn(`No coordinates found for ${territory.territory_name}`);
+                return;
             }
+
+            // Create circle marker
+            const marker = L.circleMarker(coords, {
+                radius: this.getMarkerRadius(territory.status),
+                fillColor: this.getStatusColor(territory.status),
+                color: this.teamColor || '#3388ff',
+                weight: 3,
+                opacity: 1,
+                fillOpacity: 0.6
+            });
+
+            // Bind popup and tooltip
+            const popupContent = this.createTerritoryPopup(territory, teamInfo);
+            marker.bindPopup(popupContent, {
+                maxWidth: 300,
+                className: 'territory-popup-container'
+            });
+
+            marker.bindTooltip(
+                `<strong>${territory.territory_name}</strong><br>${this.getStatusText(territory.status)}`,
+                { direction: 'top', offset: [0, -10] }
+            );
+
+            marker.addTo(this.territoriesLayer);
+            marker.territoryId = territory.id;
+            this.markers.set(territory.id, marker);
+            markersAdded++;
         });
 
-        // Fit map to show all territories if any were added
+        // Fit map to show all territories
         if (this.territoriesLayer.getLayers().length > 0) {
             try {
                 this.map.fitBounds(this.territoriesLayer.getBounds(), {
@@ -156,70 +188,146 @@ class TerritoryMap {
                 });
             } catch (error) {
                 console.warn('Could not fit bounds:', error);
-                // Fallback to India center
                 this.map.setView(this.indiaCenter, this.indiaZoom);
             }
         } else {
-            // No markers, center on India
             this.map.setView(this.indiaCenter, this.indiaZoom);
         }
 
-        console.log(`Successfully displayed ${markersAdded}/${territories.length} territories on map`);
+        console.log(`Phase 1: Displayed ${markersAdded}/${territories.length} circle markers`);
+
+        // PHASE 2: Upgrade to polygons in background (async, non-blocking)
+        this.upgradeToPolygons(territories, teamInfo);
     }
 
     /**
-     * Add a single territory marker to the map
+     * Upgrade circle markers to polygon boundaries (background process)
+     * @private
+     * @param {Array} territories - Territory assignment data
+     * @param {object} teamInfo - Team information
+     */
+    async upgradeToPolygons(territories, teamInfo = {}) {
+        console.log('Phase 2: Starting background polygon upgrades...');
+
+        // Fetch all boundaries in parallel with timeout
+        const boundaryPromises = territories.map(territory =>
+            this.fetchTerritoryBoundaryWithTimeout(
+                territory.territory_osm_id,
+                territory.territory_name,
+                10000 // 10 second timeout per territory
+            )
+        );
+
+        const results = await Promise.allSettled(boundaryPromises);
+
+        let upgraded = 0;
+        let failed = 0;
+
+        results.forEach((result, index) => {
+            const territory = territories[index];
+
+            if (result.status === 'fulfilled' && result.value) {
+                // Successfully fetched boundary - replace marker with polygon
+                const success = this.replaceMarkerWithPolygon(territory, result.value, teamInfo);
+                if (success) {
+                    upgraded++;
+                } else {
+                    failed++;
+                }
+            } else {
+                // Failed to fetch - keep circle marker
+                failed++;
+                console.log(`Keeping circle marker for ${territory.territory_name}`);
+            }
+        });
+
+        console.log(`Phase 2 complete: ${upgraded} polygons, ${failed} markers`);
+    }
+
+    /**
+     * Fetch territory boundary with timeout
+     * @private
+     * @param {string} osmRelationId - OSM relation ID
+     * @param {string} territoryName - Territory name
+     * @param {number} timeout - Timeout in milliseconds
+     * @returns {Promise<object|null>} GeoJSON or null
+     */
+    async fetchTerritoryBoundaryWithTimeout(osmRelationId, territoryName, timeout = 10000) {
+        return Promise.race([
+            this.fetchTerritoryBoundary(osmRelationId, territoryName),
+            new Promise(resolve => setTimeout(() => resolve(null), timeout))
+        ]);
+    }
+
+    /**
+     * Replace a circle marker with a polygon
      * @private
      * @param {object} territory - Territory data
+     * @param {object} geoJSON - GeoJSON boundary data
      * @param {object} teamInfo - Team information
      * @returns {boolean} Success status
      */
-    addTerritoryMarker(territory, teamInfo = {}) {
-        // Get coordinates for this territory
-        const coords = this.getTerritoryCoordinates(territory.iso_code);
+    replaceMarkerWithPolygon(territory, geoJSON, teamInfo) {
+        try {
+            // Remove existing circle marker
+            const existingMarker = this.markers.get(territory.id);
+            if (existingMarker) {
+                this.territoriesLayer.removeLayer(existingMarker);
+                this.markers.delete(territory.id);
+            }
 
-        if (!coords) {
-            console.warn(`No coordinates found for ${territory.territory_name} (${territory.iso_code})`);
+            // Create polygon layer
+            const polygonLayer = L.geoJSON(geoJSON, {
+                style: {
+                    fillColor: this.getStatusColor(territory.status),
+                    fillOpacity: this.getPolygonFillOpacity(territory.status),
+                    color: this.teamColor || '#3388ff',
+                    weight: 2,
+                    opacity: 0.8
+                }
+            });
+
+            // Bind popup and tooltip
+            const popupContent = this.createTerritoryPopup(territory, teamInfo);
+            polygonLayer.bindPopup(popupContent, {
+                maxWidth: 300,
+                className: 'territory-popup-container'
+            });
+
+            polygonLayer.bindTooltip(
+                `<strong>${territory.territory_name}</strong><br>${this.getStatusText(territory.status)}`,
+                { direction: 'top', offset: [0, -10] }
+            );
+
+            polygonLayer.addTo(this.territoriesLayer);
+            polygonLayer.territoryId = territory.id;
+            this.markers.set(territory.id, polygonLayer);
+
+            console.log(`Upgraded ${territory.territory_name} to polygon`);
+            return true;
+
+        } catch (error) {
+            console.error(`Failed to upgrade ${territory.territory_name}:`, error);
             return false;
         }
+    }
 
-        // Create marker with status-based styling
-        const marker = L.circleMarker(coords, {
-            radius: this.getMarkerRadius(territory.status),
-            fillColor: this.getStatusColor(territory.status),
-            color: this.teamColor || '#3388ff',
-            weight: 3,
-            opacity: 1,
-            fillOpacity: 0.6
-        });
-
-        // Bind popup with territory information
-        const popupContent = this.createTerritoryPopup(territory, teamInfo);
-        marker.bindPopup(popupContent, {
-            maxWidth: 300,
-            className: 'territory-popup-container'
-        });
-
-        // Note: JOSM loading from map not yet implemented
-        // Markers are for visualization only
-
-        // Add tooltip for quick info
-        marker.bindTooltip(
-            `<strong>${territory.territory_name}</strong><br>${this.getStatusText(territory.status)}`,
-            {
-                direction: 'top',
-                offset: [0, -10]
-            }
-        );
-
-        // Add to layer
-        marker.addTo(this.territoriesLayer);
-
-        // Store marker reference
-        marker.territoryId = territory.id;
-        this.markers.set(territory.id, marker);
-
-        return true;
+    /**
+     * Get polygon fill opacity based on status
+     * @private
+     * @param {string} status - Territory status
+     * @returns {number} Opacity value (0-1)
+     */
+    getPolygonFillOpacity(status) {
+        switch (status) {
+            case 'completed':
+                return 0.5; // More transparent for completed
+            case 'current':
+                return 0.6; // Medium for in progress
+            case 'available':
+            default:
+                return 0.4; // Light for available
+        }
     }
 
     /**
@@ -298,6 +406,7 @@ class TerritoryMap {
 
     /**
      * Display all session territories with team assignments (coordinator view)
+     * Two-phase loading like displayTeamTerritories
      * @param {Array} allTeamsData - Array of team objects with their territories
      */
     displaySessionOverview(allTeamsData) {
@@ -312,10 +421,10 @@ class TerritoryMap {
         this.markers.clear();
 
         let totalTerritories = 0;
-        let successfulMarkers = 0;
 
-        allTeamsData.forEach((team, teamIndex) => {
-            const teamColor = this.getTeamColor(team.team_index !== undefined ? team.team_index : teamIndex);
+        // PHASE 1: Show circle markers immediately
+        allTeamsData.forEach(team => {
+            const teamColor = this.getTeamColor(team.team_index || 0);
 
             if (team.territories && team.territories.length > 0) {
                 team.territories.forEach(territory => {
@@ -327,7 +436,7 @@ class TerritoryMap {
 
                     totalTerritories++;
 
-                    // Create marker
+                    // Create circle marker
                     const marker = L.circleMarker(coords, {
                         radius: 8,
                         fillColor: this.getStatusColor(territory.status),
@@ -375,19 +484,23 @@ class TerritoryMap {
                         className: 'territory-popup-container'
                     });
 
-                    // Tooltip
                     marker.bindTooltip(
                         `<strong>${territory.territory_name}</strong><br>${team.team_name}`,
                         { direction: 'top', offset: [0, -10] }
                     );
 
                     marker.addTo(this.territoriesLayer);
-                    successfulMarkers++;
+
+                    // Store marker with metadata
+                    marker.territoryId = territory.id;
+                    marker.teamColor = teamColor;
+                    marker.teamInfo = team;
+                    this.markers.set(territory.id, marker);
                 });
             }
         });
 
-        // Fit to bounds if markers exist
+        // Fit to bounds
         if (this.territoriesLayer.getLayers().length > 0) {
             try {
                 this.map.fitBounds(this.territoriesLayer.getBounds(), {
@@ -402,7 +515,125 @@ class TerritoryMap {
             this.map.setView(this.indiaCenter, this.indiaZoom);
         }
 
-        console.log(`Coordinator view: Displayed ${successfulMarkers}/${totalTerritories} territories from ${allTeamsData.length} teams`);
+        console.log(`Coordinator Phase 1: Displayed ${totalTerritories} circle markers from ${allTeamsData.length} teams`);
+
+        // PHASE 2: Upgrade to polygons in background
+        this.upgradeCoordinatorPolygons(allTeamsData);
+    }
+
+    /**
+     * Upgrade coordinator view markers to polygons (background)
+     * @private
+     * @param {Array} allTeamsData - All teams data
+     */
+    async upgradeCoordinatorPolygons(allTeamsData) {
+        console.log('Coordinator Phase 2: Starting background polygon upgrades...');
+
+        // Collect all territories from all teams
+        const allTerritories = [];
+        const territoryTeamMap = new Map();
+
+        allTeamsData.forEach(team => {
+            if (team.territories) {
+                team.territories.forEach(territory => {
+                    allTerritories.push(territory);
+                    territoryTeamMap.set(territory.id, {
+                        teamColor: this.getTeamColor(team.team_index || 0),
+                        teamInfo: team
+                    });
+                });
+            }
+        });
+
+        // Fetch all boundaries in parallel
+        const boundaryPromises = allTerritories.map(territory =>
+            this.fetchTerritoryBoundaryWithTimeout(
+                territory.territory_osm_id,
+                territory.territory_name,
+                10000
+            )
+        );
+
+        const results = await Promise.allSettled(boundaryPromises);
+
+        let upgraded = 0;
+        results.forEach((result, index) => {
+            const territory = allTerritories[index];
+            const teamData = territoryTeamMap.get(territory.id);
+
+            if (result.status === 'fulfilled' && result.value && teamData) {
+                const success = this.replaceCoordinatorMarkerWithPolygon(
+                    territory,
+                    result.value,
+                    teamData.teamColor,
+                    teamData.teamInfo
+                );
+                if (success) upgraded++;
+            }
+        });
+
+        console.log(`Coordinator Phase 2 complete: ${upgraded}/${allTerritories.length} polygons`);
+    }
+
+    /**
+     * Replace coordinator marker with polygon
+     * @private
+     */
+    replaceCoordinatorMarkerWithPolygon(territory, geoJSON, teamColor, teamInfo) {
+        try {
+            const existingMarker = this.markers.get(territory.id);
+            if (existingMarker) {
+                this.territoriesLayer.removeLayer(existingMarker);
+            }
+
+            const polygonLayer = L.geoJSON(geoJSON, {
+                style: {
+                    fillColor: this.getStatusColor(territory.status),
+                    fillOpacity: this.getPolygonFillOpacity(territory.status),
+                    color: teamColor,
+                    weight: 2,
+                    opacity: 0.8
+                }
+            });
+
+            // Recreate popup for polygon
+            const popupContent = `
+                <div class="territory-popup">
+                    <h4 style="margin: 0 0 10px 0; color: ${teamColor}; border-bottom: 2px solid ${teamColor}; padding-bottom: 5px;">
+                        ${territory.territory_name}
+                    </h4>
+                    <div style="margin: 8px 0;">
+                        <strong>Team:</strong>
+                        <span style="color: ${teamColor}; font-weight: bold;">${teamInfo.team_name}</span>
+                    </div>
+                    <div style="margin: 8px 0;">
+                        <strong>Status:</strong>
+                        <span style="color: ${this.getStatusColor(territory.status)}; font-weight: bold;">
+                            ${this.getStatusIcon(territory.status)} ${this.getStatusText(territory.status)}
+                        </span>
+                    </div>
+                </div>
+            `;
+
+            polygonLayer.bindPopup(popupContent, {
+                maxWidth: 300,
+                className: 'territory-popup-container'
+            });
+
+            polygonLayer.bindTooltip(
+                `<strong>${territory.territory_name}</strong><br>${teamInfo.team_name}`,
+                { direction: 'top', offset: [0, -10] }
+            );
+
+            polygonLayer.addTo(this.territoriesLayer);
+            polygonLayer.territoryId = territory.id;
+            this.markers.set(territory.id, polygonLayer);
+
+            return true;
+        } catch (error) {
+            console.error(`Failed to upgrade coordinator marker for ${territory.territory_name}:`, error);
+            return false;
+        }
     }
 
     // ================================
@@ -579,6 +810,115 @@ class TerritoryMap {
     }
 
     // ================================
+    // BOUNDARY FETCHING
+    // ================================
+
+    /**
+     * Fetch territory boundary from Overpass API
+     * @private
+     * @param {string} osmRelationId - OSM relation ID for the territory
+     * @param {string} territoryName - Territory name for logging
+     * @returns {Promise<object|null>} GeoJSON object or null if failed
+     */
+    async fetchTerritoryBoundary(osmRelationId, territoryName) {
+        if (!osmRelationId) {
+            console.warn(`No OSM relation ID for ${territoryName}`);
+            return null;
+        }
+
+        const overpassServers = [
+            'https://overpass-api.de/api/interpreter',
+            'https://overpass.kumi.systems/api/interpreter',
+            'https://overpass.openstreetmap.fr/api/interpreter'
+        ];
+
+        // Overpass query to get boundary geometry
+        const query = `
+[out:json][timeout:25];
+relation(${osmRelationId});
+out geom;
+        `.trim();
+
+        // Try each server
+        for (const server of overpassServers) {
+            try {
+                console.log(`Fetching boundary for ${territoryName} from ${server}`);
+
+                const response = await fetch(server, {
+                    method: 'POST',
+                    body: query,
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (!data.elements || data.elements.length === 0) {
+                    throw new Error('No boundary data returned');
+                }
+
+                // Convert Overpass data to GeoJSON
+                const geoJSON = this.overpassToGeoJSON(data.elements[0]);
+
+                if (geoJSON) {
+                    console.log(`Successfully fetched boundary for ${territoryName}`);
+                    return geoJSON;
+                }
+
+            } catch (error) {
+                console.warn(`Failed to fetch from ${server}:`, error.message);
+                continue;
+            }
+        }
+
+        console.error(`All servers failed for ${territoryName}`);
+        return null;
+    }
+
+    /**
+     * Convert Overpass API relation data to GeoJSON
+     * @private
+     * @param {object} element - Overpass relation element
+     * @returns {object|null} GeoJSON Feature or null
+     */
+    overpassToGeoJSON(element) {
+        if (!element || !element.members) {
+            return null;
+        }
+
+        // Extract outer way coordinates
+        const coordinates = [];
+
+        for (const member of element.members) {
+            if (member.role === 'outer' && member.geometry) {
+                const wayCoords = member.geometry.map(node => [node.lon, node.lat]);
+                coordinates.push(wayCoords);
+            }
+        }
+
+        if (coordinates.length === 0) {
+            return null;
+        }
+
+        return {
+            type: 'Feature',
+            properties: {
+                name: element.tags?.name || 'Unknown',
+                osmId: element.id
+            },
+            geometry: {
+                type: 'Polygon',
+                coordinates: coordinates
+            }
+        };
+    }
+
+    // ================================
     // MAP CONTROLS & UPDATES
     // ================================
 
@@ -592,23 +932,36 @@ class TerritoryMap {
             return;
         }
 
-        const marker = this.markers.get(territoryId);
+        const layer = this.markers.get(territoryId);
 
-        if (marker) {
-            // Zoom to territory
-            this.map.setView(marker.getLatLng(), 7, {
-                animate: true,
-                duration: 0.5
-            });
+        if (layer) {
+            // Get bounds or position to zoom to
+            if (layer.getBounds) {
+                // For polygon layers (GeoJSON)
+                this.map.fitBounds(layer.getBounds(), {
+                    padding: [50, 50],
+                    maxZoom: 7,
+                    animate: true,
+                    duration: 0.5
+                });
+            } else if (layer.getLatLng) {
+                // For circle markers
+                this.map.setView(layer.getLatLng(), 7, {
+                    animate: true,
+                    duration: 0.5
+                });
+            }
 
             // Open popup after a brief delay
             setTimeout(() => {
-                marker.openPopup();
+                if (layer.openPopup) {
+                    layer.openPopup();
+                }
             }, 300);
 
             console.log(`Focused on territory: ${territoryId}`);
         } else {
-            console.warn(`Territory marker not found: ${territoryId}`);
+            console.warn(`Territory layer not found: ${territoryId}`);
         }
     }
 
@@ -623,33 +976,44 @@ class TerritoryMap {
             return;
         }
 
-        const marker = this.markers.get(territoryId);
+        const layer = this.markers.get(territoryId);
 
-        if (marker) {
-            // Update marker styling
-            marker.setStyle({
-                fillColor: this.getStatusColor(newStatus),
-                radius: this.getMarkerRadius(newStatus)
-            });
+        if (layer) {
+            // Update layer styling (works for both polygons and circle markers)
+            if (layer.setStyle) {
+                // For GeoJSON layers, we need to iterate through sublayers
+                if (layer instanceof L.GeoJSON) {
+                    layer.setStyle({
+                        fillColor: this.getStatusColor(newStatus),
+                        fillOpacity: this.getPolygonFillOpacity(newStatus)
+                    });
+                } else {
+                    // For circle markers
+                    layer.setStyle({
+                        fillColor: this.getStatusColor(newStatus),
+                        radius: this.getMarkerRadius(newStatus)
+                    });
+                }
+            }
 
             // Update tooltip
             const territory = this.currentTerritories.find(t => t.id === territoryId);
             if (territory) {
                 territory.status = newStatus;
-                marker.setTooltipContent(
+                layer.setTooltipContent(
                     `<strong>${territory.territory_name}</strong><br>${this.getStatusText(newStatus)}`
                 );
 
                 // Update popup if it's open
-                if (marker.isPopupOpen()) {
-                    const teamInfo = { team_name: this.currentTeam?.team_name };
-                    marker.setPopupContent(this.createTerritoryPopup(territory, teamInfo));
+                if (layer.isPopupOpen && layer.isPopupOpen()) {
+                    const teamInfo = this.currentTeam || {};
+                    layer.setPopupContent(this.createTerritoryPopup(territory, teamInfo));
                 }
             }
 
             console.log(`Updated territory ${territoryId} to status: ${newStatus}`);
         } else {
-            console.warn(`Territory marker not found for update: ${territoryId}`);
+            console.warn(`Territory layer not found for update: ${territoryId}`);
         }
     }
 

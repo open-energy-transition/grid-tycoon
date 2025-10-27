@@ -12,39 +12,39 @@
    ============================================================================ */
 
 :root {
-    /* Color Palette */
-    --color-primary: #3B82F6;
-    --color-primary-hover: #2563EB;
-    --color-primary-light: #DBEAFE;
+    /* Earthy Color Palette */
+    --color-primary: #C4704F;
+    --color-primary-hover: #A85C3F;
+    --color-primary-light: #F5E6DF;
 
-    --color-success: #10B981;
-    --color-success-light: #D1FAE5;
+    --color-success: #7D8F69;
+    --color-success-light: #E8EDE3;
 
-    --color-warning: #F59E0B;
-    --color-warning-light: #FEF3C7;
+    --color-warning: #D4A574;
+    --color-warning-light: #F7EFE3;
 
-    --color-danger: #EF4444;
-    --color-danger-light: #FEE2E2;
+    --color-danger: #B85C5C;
+    --color-danger-light: #F5E3E3;
 
-    --color-info: #3B82F6;
-    --color-info-light: #DBEAFE;
+    --color-info: #6B8E8F;
+    --color-info-light: #E5EEEE;
 
-    --color-secondary: #6B7280;
-    --color-secondary-light: #F3F4F6;
+    --color-secondary: #8B7355;
+    --color-secondary-light: #EDE9E3;
 
     /* Text Colors */
-    --color-text-primary: #1F2937;
-    --color-text-secondary: #6B7280;
-    --color-text-muted: #9CA3AF;
+    --color-text-primary: #3E3026;
+    --color-text-secondary: #6B5D4F;
+    --color-text-muted: #9B8B7A;
 
     /* Background Colors */
-    --color-bg-primary: #FFFFFF;
-    --color-bg-secondary: #F9FAFB;
-    --color-bg-tertiary: #F3F4F6;
+    --color-bg-primary: #FDFCFA;
+    --color-bg-secondary: #F7F4EF;
+    --color-bg-tertiary: #EDE9E3;
 
     /* Border Colors */
-    --color-border: #E5E7EB;
-    --color-border-light: #F3F4F6;
+    --color-border: #D9D0C3;
+    --color-border-light: #EDE9E3;
 
     /* Spacing */
     --spacing-xs: 0.5rem;
@@ -86,11 +86,20 @@
 
 body {
     font-family: var(--font-family);
-    background: #F5F5F0;
+    background: var(--color-bg-secondary);
     min-height: 100vh;
     color: var(--color-text-primary);
     line-height: 1.6;
     font-size: var(--font-size-base);
+    overflow-x: hidden;
+}
+
+body:has(.landing-section[style*="display: none"]) {
+    overflow-y: auto;
+}
+
+body:has(.landing-section:not([style*="display: none"])) {
+    overflow: hidden;
 }
 
 /* ============================================================================
@@ -101,6 +110,14 @@ body {
     max-width: 1200px;
     margin: 0 auto;
     padding: var(--spacing-lg);
+    position: relative;
+    min-height: 100vh;
+}
+
+/* Remove padding when registration page is visible */
+body:has(.registration-page:not([style*="display: none"])) .container {
+    padding: 0;
+    max-width: none;
 }
 
 /* ============================================================================
@@ -108,12 +125,126 @@ body {
    ============================================================================ */
 
 .header {
-    text-align: center;
-    margin-bottom: var(--spacing-xl);
-    padding: var(--spacing-xl) 0;
+    margin-bottom: 0;
+    padding: var(--spacing-lg) var(--spacing-xl);
     border-bottom: none;
-    background: #2563EB;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    background: transparent;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+}
+
+/* Header styling when registration page is visible */
+body:has(.registration-page:not([style*="display: none"])) .header {
+    position: fixed;
+    background: transparent;
+    border-bottom: none;
+    z-index: 1000;
+}
+
+body:has(.registration-page:not([style*="display: none"])) .header-brand {
+    color: rgba(255, 255, 255, 0.85);
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    font-weight: 600;
+    font-size: var(--font-size-xl);
+}
+
+body:has(.registration-page:not([style*="display: none"])) .header-brand:hover {
+    color: white;
+}
+
+/* Mapping page header - transparent and floating */
+body:has(#mappingSection:not([style*="display: none"])) .header {
+    position: fixed;
+    background: transparent;
+    border-bottom: none;
+    z-index: 1000;
+}
+
+body:has(#mappingSection:not([style*="display: none"])) .header-brand {
+    color: rgba(255, 255, 255, 0.85);
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    font-weight: 600;
+    font-size: var(--font-size-xl);
+}
+
+body:has(#mappingSection:not([style*="display: none"])) .header-brand:hover {
+    color: white;
+}
+
+/* Hide arrow on mapping page for subtle look */
+body:has(#mappingSection:not([style*="display: none"])) .header-brand::after {
+    display: none;
+}
+
+/* Header for non-registration pages */
+body:not(:has(.registration-page:not([style*="display: none"]))) .header {
+    position: relative;
+    background: var(--color-bg-primary);
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: var(--spacing-xl);
+}
+
+body:not(:has(.registration-page:not([style*="display: none"]))) .header-brand {
+    color: var(--color-primary);
+    text-shadow: none;
+}
+
+.header-nav {
+    margin-bottom: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-nav-links {
+    display: none;
+    gap: var(--spacing-sm);
+    align-items: center;
+}
+
+.header-nav-links .btn {
+    padding: 0.5rem 1rem;
+    font-size: var(--font-size-sm);
+}
+
+.header-brand {
+    display: inline-block;
+    font-size: var(--font-size-2xl);
+    font-weight: 700;
+    color: white;
+    text-decoration: none;
+    letter-spacing: -0.025em;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+.header-brand:hover {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* Hide arrow on registration page for subtle look */
+body:has(.registration-page:not([style*="display: none"])) .header-brand::after {
+    display: none;
+}
+
+/* Show arrow on other pages */
+body:not(:has(.registration-page:not([style*="display: none"]))) .header-brand::after {
+    content: '←';
+    margin-left: 0.5rem;
+    opacity: 0;
+    transform: translateX(10px);
+    transition: all 0.3s ease;
+    font-size: 1.2rem;
+}
+
+body:not(:has(.registration-page:not([style*="display: none"]))) .header-brand:hover::after {
+    opacity: 1;
+    transform: translateX(0);
 }
 
 .title {
@@ -122,12 +253,6 @@ body {
     color: #FFFFFF;
     margin-bottom: var(--spacing-xs);
     letter-spacing: -0.025em;
-}
-
-.subtitle {
-    font-size: var(--font-size-lg);
-    color: #E0E7FF;
-    font-weight: 400;
 }
 
 /* ============================================================================
@@ -140,6 +265,73 @@ body {
     border-radius: var(--radius-lg);
     padding: var(--spacing-xl);
     margin-bottom: var(--spacing-lg);
+}
+
+/* Registration Page with Background Image */
+.registration-page {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-image: url('../media/backgrounds/sat-image-2.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    border: none;
+    border-radius: 0;
+    margin: 0;
+    padding: var(--spacing-lg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    overflow-y: auto;
+}
+
+/* Container for the floating card */
+.registration-page .section-header {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    padding: var(--spacing-xl);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    border-bottom: 1px solid var(--color-border-light);
+    max-width: 500px;
+    width: 100%;
+    margin: 0 auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    position: relative;
+    z-index: 1;
+}
+
+.registration-page .form-container {
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(10px);
+    padding: var(--spacing-xl);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    max-width: 500px;
+    width: 100%;
+    margin: 0 auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    position: relative;
+    z-index: 1;
+}
+
+/* Animate the card container */
+.registration-page .section-header {
+    animation: floatIn 0.6s ease-out;
+}
+
+@keyframes floatIn {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .section-header {
@@ -269,7 +461,7 @@ body {
 }
 
 .btn-success:hover:not(:disabled) {
-    background: #059669;
+    background: #6A7958;
 }
 
 .btn-danger {
@@ -278,7 +470,7 @@ body {
 }
 
 .btn-danger:hover:not(:disabled) {
-    background: #DC2626;
+    background: #9F4E4E;
 }
 
 .btn-warning {
@@ -287,7 +479,7 @@ body {
 }
 
 .btn-warning:hover:not(:disabled) {
-    background: #D97706;
+    background: #C0915F;
 }
 
 .btn-info {
@@ -296,7 +488,7 @@ body {
 }
 
 .btn-info:hover:not(:disabled) {
-    background: #2563EB;
+    background: #5A7A7B;
 }
 
 .btn-secondary {
@@ -305,7 +497,7 @@ body {
 }
 
 .btn-secondary:hover:not(:disabled) {
-    background: #4B5563;
+    background: #75624A;
 }
 
 /* ============================================================================
@@ -323,25 +515,25 @@ body {
 .status-success {
     background: var(--color-success-light);
     border-color: var(--color-success);
-    color: #065F46;
+    color: #4A5A3D;
 }
 
 .status-error {
     background: var(--color-danger-light);
     border-color: var(--color-danger);
-    color: #991B1B;
+    color: #7A3A3A;
 }
 
 .status-info {
     background: var(--color-info-light);
     border-color: var(--color-info);
-    color: #1E40AF;
+    color: #475B5C;
 }
 
 .status-warning {
     background: var(--color-warning-light);
     border-color: var(--color-warning);
-    color: #92400E;
+    color: #8A6B48;
 }
 
 .loading {
@@ -483,20 +675,20 @@ body {
 }
 
 .rank-1 {
-    background: #FEF3C7;
-    border-color: #F59E0B;
+    background: var(--color-warning-light);
+    border-color: var(--color-warning);
     font-weight: 600;
 }
 
 .rank-2 {
-    background: #E5E7EB;
-    border-color: #9CA3AF;
+    background: var(--color-secondary-light);
+    border-color: var(--color-secondary);
     font-weight: 600;
 }
 
 .rank-3 {
-    background: #FED7AA;
-    border-color: #F97316;
+    background: var(--color-primary-light);
+    border-color: var(--color-primary);
     font-weight: 600;
 }
 
@@ -886,27 +1078,137 @@ body {
     margin: var(--spacing-lg) 0;
 }
 
+
 /* ============================================================================
-   FOOTER
+   LANDING PAGE
    ============================================================================ */
 
-.footer {
+.landing-section {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-image: url('../media/backgrounds/openinframap_crop.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    display: flex;
+    flex-direction: column;
+    z-index: 1000;
+}
+
+/* Minimal Navigation Header */
+.landing-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2rem 3rem;
+    position: relative;
+    z-index: 2;
+}
+
+.nav-brand {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: white;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+    letter-spacing: -0.02em;
+}
+
+.nav-links {
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+}
+
+.nav-link {
+    color: white;
+    text-decoration: none;
+    font-size: 1rem;
+    font-weight: 500;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.nav-link:hover {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: white;
+    transition: width 0.3s ease;
+}
+
+.nav-link:hover::after {
+    width: 100%;
+}
+
+.nav-link-primary {
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    padding: 0.5rem 1.25rem;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.nav-link-primary::after {
+    display: none;
+}
+
+.nav-link-primary:hover {
+    background: rgba(255, 255, 255, 0.3);
+    color: white;
+}
+
+/* Centered Content */
+.landing-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
     text-align: center;
-    margin-top: var(--spacing-xl);
-    padding: var(--spacing-lg);
-    color: var(--color-text-secondary);
-    background: var(--color-bg-primary);
-    border-top: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
+    padding: 2rem;
 }
 
-.footer p {
-    margin: var(--spacing-xs) 0;
-    font-size: var(--font-size-sm);
+.landing-title {
+    font-size: 5rem;
+    font-weight: 800;
+    color: white;
+    margin: 0;
+    letter-spacing: -0.03em;
+    text-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
+    line-height: 1.1;
+    animation: fadeInUp 0.8s ease-out;
 }
 
-.footer-meta {
-    color: var(--color-text-muted);
+.landing-subtitle {
+    font-size: 1.5rem;
+    font-weight: 400;
+    color: white;
+    margin-top: 1rem;
+    opacity: 0.95;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.7);
+    animation: fadeInUp 0.8s ease-out 0.2s backwards;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* ============================================================================
@@ -928,6 +1230,60 @@ body {
 
     .section {
         padding: var(--spacing-md);
+    }
+
+    /* Header responsive */
+    .header {
+        padding: var(--spacing-md) var(--spacing-lg);
+    }
+
+    .header-brand {
+        font-size: var(--font-size-xl);
+    }
+
+    /* Registration page header */
+    body:has(.registration-page:not([style*="display: none"])) .header {
+        padding: var(--spacing-md);
+    }
+
+    body:has(.registration-page:not([style*="display: none"])) .header-brand {
+        font-size: var(--font-size-lg);
+    }
+
+    /* Registration page responsive */
+    .registration-page {
+        padding: var(--spacing-md);
+    }
+
+    .registration-page .section-header,
+    .registration-page .form-container {
+        padding: var(--spacing-lg);
+        max-width: 95%;
+    }
+
+    /* Landing page responsive */
+    .landing-nav {
+        padding: 1.5rem 2rem;
+    }
+
+    .nav-brand {
+        font-size: 1.25rem;
+    }
+
+    .nav-links {
+        gap: 1rem;
+    }
+
+    .nav-link {
+        font-size: 0.9rem;
+    }
+
+    .landing-title {
+        font-size: 3rem;
+    }
+
+    .landing-subtitle {
+        font-size: 1.25rem;
     }
 
     .coordinator-actions {
@@ -990,6 +1346,62 @@ body {
 
     #territoryMap {
         height: 300px;
+    }
+
+    /* Header responsive */
+    .header {
+        padding: var(--spacing-sm) var(--spacing-md);
+    }
+
+    .header-brand {
+        font-size: var(--font-size-lg);
+    }
+
+    /* Registration page header */
+    body:has(.registration-page:not([style*="display: none"])) .header {
+        padding: var(--spacing-sm);
+    }
+
+    body:has(.registration-page:not([style*="display: none"])) .header-brand {
+        font-size: var(--font-size-base);
+    }
+
+    /* Registration page responsive */
+    .registration-page {
+        padding: var(--spacing-sm);
+    }
+
+    .registration-page .section-header,
+    .registration-page .form-container {
+        padding: var(--spacing-md);
+        max-width: 100%;
+    }
+
+    /* Landing page responsive */
+    .landing-nav {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1rem;
+        align-items: flex-start;
+    }
+
+    .nav-links {
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: flex-start;
+        width: 100%;
+    }
+
+    .nav-link {
+        font-size: 0.875rem;
+    }
+
+    .landing-title {
+        font-size: 2rem;
+    }
+
+    .landing-subtitle {
+        font-size: 1rem;
     }
 }
 
