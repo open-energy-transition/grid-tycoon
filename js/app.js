@@ -186,8 +186,9 @@ async checkUserStatus() {
 validateUserInput() {
     const firstName = document.getElementById('firstNameInput')?.value?.trim();
     const osmUsername = document.getElementById('osmUsernameInput')?.value?.trim();
-    const sessionId = document.getElementById('sessionIdInput')?.value?.trim().toUpperCase();
-    
+    const sessionIdRaw = document.getElementById('sessionIdInput')?.value?.trim();
+    const sessionId = sessionIdRaw?.toUpperCase();
+
     if (!firstName || !osmUsername || !sessionId) {
         return {
             success: false,
@@ -202,6 +203,8 @@ validateUserInput() {
         };
     }
 
+    console.log(`Input validated: firstName="${firstName}", osmUsername="${osmUsername}", sessionId="${sessionIdRaw}" (normalized to "${sessionId}")`);
+
     return {
         success: true,
         data: { firstName, osmUsername, sessionId }
@@ -209,13 +212,25 @@ validateUserInput() {
 }
 
 determineCoordinatorStatus(firstName, sessionId) {
-    return sessionId.includes('COORD') || 
-           sessionId.includes('ADMIN') || 
-           firstName.toLowerCase().includes('coord');
+    const upperSessionId = sessionId.toUpperCase();
+    const isCoord = upperSessionId.includes('COORD') ||
+                    upperSessionId.includes('ADMIN') ||
+                    firstName.toLowerCase().includes('coord');
+
+    console.log(`Coordinator detection: sessionId="${sessionId}", isCoordinator=${isCoord}`);
+    return isCoord;
 }
 
 cleanSessionId(sessionId) {
-    return sessionId.replace('-COORD', '').replace('-ADMIN', '');
+    // Make case-insensitive by converting to uppercase first
+    const cleaned = sessionId.toUpperCase()
+        .replace('-COORD', '')
+        .replace('-ADMIN', '')
+        .replace('COORD', '')
+        .replace('ADMIN', '');
+
+    console.log(`Session ID cleaned: "${sessionId}" → "${cleaned}"`);
+    return cleaned;
 }
 
 // ================================
@@ -225,14 +240,22 @@ cleanSessionId(sessionId) {
 async handleCoordinatorLogin() {
     try {
         const sessionId = this.currentUser.sessionId;
-        
+
+        console.log(`Coordinator login for session: ${sessionId}`);
+
+        // Check if database is available
+        if (!this.supabaseManager) {
+            throw new Error('Database not configured. Coordinator dashboard requires database access. Please check your configuration in index.html.');
+        }
+
         const sessionResult = await this.supabaseManager.ensureSessionExists(sessionId);
         if (!sessionResult.success) {
             throw new Error(sessionResult.error);
         }
-        
+
+        console.log(`Session "${sessionId}" verified, loading coordinator dashboard...`);
         await this.showCoordinatorDashboard();
-        
+
     } catch (error) {
         console.error('Coordinator login failed:', error);
         this.showStatus('error', `Coordinator login failed: ${error.message}`);
@@ -277,23 +300,33 @@ async showCoordinatorDashboard() {
 
 async setupCompleteSession() {
     const sessionId = this.currentUser.sessionId;
-    
-    this.showStatus('info', 'Setting up teams and distributing territories... This may take several minutes.', true);
-    
+
+    // Get team size from input field
+    const teamSizeInput = document.getElementById('teamSizeInput');
+    const teamSize = teamSizeInput ? parseInt(teamSizeInput.value) : 3;
+
+    // Validate team size
+    if (teamSize < 1 || teamSize > 20) {
+        this.showStatus('error', 'Team size must be between 1 and 20');
+        return;
+    }
+
+    this.showStatus('info', `Setting up teams (size: ${teamSize}) and distributing territories... This may take several minutes.`, true);
+
     try {
-        console.log('Starting complete session setup...');
-        
-        const result = await this.supabaseManager.coordinatorSetupSession(sessionId, this.overpassAPI);
-        
+        console.log(`Starting complete session setup with team size: ${teamSize}...`);
+
+        const result = await this.supabaseManager.coordinatorSetupSession(sessionId, this.overpassAPI, teamSize);
+
         if (result.success) {
-            this.showStatus('success', 
+            this.showStatus('success',
                 `Session setup complete! ${result.data.teamsCreated} teams formed, ${result.data.territoriesDistributed} territories distributed.`
             );
             await this.refreshCoordinatorDashboard();
         } else {
             throw new Error(result.error);
         }
-        
+
     } catch (error) {
         console.error('Session setup failed:', error);
         this.showStatus('error', `Failed to setup session: ${error.message}`);
@@ -307,22 +340,28 @@ async setupCompleteSession() {
 async handleParticipantLogin() {
     const { firstName, osmUsername, sessionId } = this.currentUser;
 
+    console.log(`Participant login attempt: ${firstName} (@${osmUsername}) for session ${sessionId}`);
+
     try {
         const userResult = await this.supabaseManager.getUserByOSMUsername(osmUsername, sessionId);
 
         if (userResult.success && userResult.data.user) {
+            console.log(`Existing participant found:`, userResult.data.user);
             const teamResult = await this.supabaseManager.getUserTeamInfo(userResult.data.user.id);
 
             if (teamResult.success && teamResult.data.teamInfo) {
+                console.log(`Participant has team assignment:`, teamResult.data.teamInfo);
                 this.currentTeam = teamResult.data.teamInfo;
                 // Get territories before showing mapping interface
                 const territoriesResult = await this.supabaseManager.getTeamTerritories(this.currentTeam.id);
                 this.currentTerritories = territoriesResult.success ? territoriesResult.data.territories : [];
                 await this.showMappingInterface();
             } else {
+                console.log(`Participant exists but has no team assignment yet`);
                 this.showWaitingForTeam();
             }
         } else {
+            console.log(`New participant - proceeding with registration`);
             await this.registerNewParticipant();
         }
     } catch (error) {
@@ -333,13 +372,16 @@ async handleParticipantLogin() {
 
 async registerNewParticipant() {
     const { firstName, osmUsername, sessionId } = this.currentUser;
-    
+
+    console.log(`Registering new participant: ${firstName} (@${osmUsername}) for session ${sessionId}`);
+
     try {
         const result = await this.supabaseManager.registerParticipant(firstName, osmUsername, sessionId);
-        
+
         if (result.success) {
+            console.log(`Registration successful - participant should wait for coordinator to form teams`);
             this.showWaitingForTeam();
-            this.showStatus('success', 'Registration successful! Waiting for team assignment.');
+            this.showStatus('success', 'Registration successful! Waiting for coordinator to form teams.');
         } else {
             throw new Error(result.error);
         }
@@ -356,11 +398,19 @@ showWaitingForTeam() {
             <div class="user-info" style="background: rgba(107, 142, 143, 0.1); padding: 20px; border-radius: 15px; margin: 20px 0;">
                 <p><strong>Name:</strong> ${this.currentUser.firstName}</p>
                 <p><strong>OSM Username:</strong> ${this.currentUser.osmUsername}</p>
-                <p><strong>Session ID:</strong> ${this.currentUser.sessionId}</p>
+                <p><strong>Session ID:</strong> <span style="font-family: monospace; background: rgba(125, 143, 105, 0.2); padding: 2px 8px; border-radius: 4px;">${this.currentUser.sessionId}</span></p>
+            </div>
+            <div class="session-isolation-info" style="background: rgba(125, 143, 105, 0.1); padding: 15px; border-radius: 10px; border-left: 4px solid #7D8F69; margin: 20px 0;">
+                <p style="margin: 5px 0; font-size: 0.95rem;">
+                    <strong>Session Isolation:</strong> You are registered in session <strong>"${this.currentUser.sessionId}"</strong>.
+                </p>
+                <p style="margin: 5px 0; font-size: 0.9rem; color: #555;">
+                    You will only be assigned to teams within this session. The coordinator for session "${this.currentUser.sessionId}" must form teams before you can start mapping.
+                </p>
             </div>
             <div class="waiting-message" style="text-align: center; margin: 30px 0;">
                 <div class="spinner"></div>
-                <p style="margin: 20px 0; font-size: 1.2rem;">Waiting for team assignment...</p>
+                <p style="margin: 20px 0; font-size: 1.2rem;">Waiting for coordinator of session "${this.currentUser.sessionId}" to form teams...</p>
                 <p>You'll be able to start mapping when teams are formed and territories are assigned.</p>
             </div>
             <div class="waiting-actions" style="text-align: center;">
@@ -373,7 +423,7 @@ showWaitingForTeam() {
             </div>
         </div>
     `;
-    
+
     this.showSection('teamSection', waitingHtml);
 }
 
@@ -640,10 +690,6 @@ async loadTerritoryInJOSM(assignmentId) {
             throw new Error('Territory does not have ISO code for JOSM loading');
         }
 
-        if (!territory.overpass_query_ready) {
-            throw new Error('Territory is not ready for JOSM import');
-        }
-
         const query = this.overpassAPI.generatePowerQuery(territory.iso_code);
         
         const result = await this.josmIntegration.loadOverpassData(
@@ -878,31 +924,26 @@ getTeamFormationInfo(participantCount) {
         return {
             title: 'No Participants Registered',
             description: 'Waiting for participants to register for this session.',
-            details: 'Each team requires exactly 3 members: one Pioneer, one Technician, and one Seeker.',
-            canFormTeams: false
-        };
-    } else if (participantCount < 3) {
-        return {
-            title: 'Insufficient Participants',
-            description: `Need ${3 - participantCount} more participants to form the first team.`,
-            details: 'Minimum 3 participants required for team formation.',
-            canFormTeams: false
-        };
-    } else if (participantCount % 3 !== 0) {
-        const excess = participantCount % 3;
-        const needed = 3 - excess;
-        return {
-            title: 'Incomplete Team Formation',
-            description: `${participantCount} participants registered. Need ${needed} more for complete teams.`,
-            details: `Current: ${Math.floor(participantCount / 3)} complete teams possible, ${excess} participants would be unassigned.`,
+            details: 'Teams will be formed with flexible sizes (typically 3-4 members per team).',
             canFormTeams: false
         };
     } else {
-        const possibleTeams = participantCount / 3;
+        // Calculate expected team count
+        let expectedTeams;
+        if (participantCount <= 3) {
+            expectedTeams = 1;
+        } else if (participantCount <= 6) {
+            expectedTeams = 2;
+        } else {
+            expectedTeams = Math.ceil(participantCount / 3.5);
+        }
+
+        const avgMembersPerTeam = Math.ceil(participantCount / expectedTeams);
+
         return {
             title: 'Ready for Team Formation',
-            description: `${participantCount} participants can form ${possibleTeams} complete teams.`,
-            details: 'All participants will be assigned to teams with balanced roles.',
+            description: `${participantCount} participants will form approximately ${expectedTeams} team${expectedTeams > 1 ? 's' : ''}.`,
+            details: `Average team size: ${avgMembersPerTeam} members. All participants will be assigned with balanced roles.`,
             canFormTeams: true
         };
     }
@@ -1094,7 +1135,7 @@ showResourcesModal() {
                     </div>
                 </a>
 
-                <a href="https://wiki.openstreetmap.org/wiki/Power" target="_blank" rel="noopener noreferrer"
+                <a href="https://wiki.openstreetmap.org/wiki/Power_networks" target="_blank" rel="noopener noreferrer"
                    style="display: flex; align-items: center; gap: 1rem; padding: 1.25rem; background: #f8f9fa; border-radius: 8px; text-decoration: none; color: #2c3e50; border: 1px solid #e0e0e0; transition: all 0.3s ease;">
                     <span style="font-size: 2rem;">📚</span>
                     <div>
@@ -1257,6 +1298,24 @@ renderCoordinatorDashboard({ sessionId, user, participants, progress, teamFormat
 
             <div class="coordinator-actions">
                 <h4>Session Management</h4>
+
+                <div style="background: rgba(107, 142, 143, 0.1); padding: 20px; border-radius: 10px; margin: 15px 0;">
+                    <label for="teamSizeInput" style="display: block; margin-bottom: 8px; font-weight: bold; color: #1F2937;">
+                        Desired Team Size:
+                    </label>
+                    <input
+                        type="number"
+                        id="teamSizeInput"
+                        min="1"
+                        max="20"
+                        value="3"
+                        style="width: 100px; padding: 8px; border: 2px solid #6B8E8F; border-radius: 5px; font-size: 1em;"
+                    />
+                    <small style="display: block; margin-top: 5px; color: #666;">
+                        Number of members per team (default: 3)
+                    </small>
+                </div>
+
                 <button class="btn btn-primary" onclick="app.viewParticipants()" ${participants.length === 0 ? 'disabled' : ''}>
                     View Participants (${participants.length})
                 </button>
@@ -1327,20 +1386,31 @@ async viewParticipants() {
 
     try {
         this.showStatus('info', 'Loading participants...', true);
-        
-        const result = await this.supabaseManager.getSessionParticipantsDetailed(this.currentUser.sessionId);
-        
-        if (!result.success) {
-            throw new Error(result.error);
+
+        const [participantsResult, teamsResult] = await Promise.all([
+            this.supabaseManager.getSessionParticipantsDetailed(this.currentUser.sessionId),
+            this.supabaseManager.getSessionTeams(this.currentUser.sessionId)
+        ]);
+
+        if (!participantsResult.success) {
+            throw new Error(participantsResult.error);
         }
 
-        const data = result.data;
+        const data = participantsResult.data;
         const participants = data.participants || [];
+        const teams = teamsResult.success ? teamsResult.data.teams : [];
+
+        // Available roles for coordinator management
+        const availableRoles = [
+            { name: 'Pioneer', icon: '🗺️', description: 'In charge of traditional style mapping of annotating on a map' },
+            { name: 'Technician', icon: '⚡', description: 'Ensures assets are correctly named and missing voltages are added' },
+            { name: 'Seeker', icon: '🔍', description: 'Seeks out missing Power Plants, good first lines and available credible information sources, checks industries as well' }
+        ];
 
         const modalContent = `
-            <div style="max-width: 800px;">
+            <div style="max-width: 900px;">
                 <h3>Session Participants - ${this.currentUser.sessionId}</h3>
-                
+
                 <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; text-align: center;">
                         <div>
@@ -1371,7 +1441,7 @@ async viewParticipants() {
                             No participants registered yet.
                         </div>
                     ` : `
-                        <div style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px;">
+                        <div style="max-height: 500px; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px;">
                             <table style="width: 100%; border-collapse: collapse;">
                                 <thead style="background: #f8f9fa; position: sticky; top: 0;">
                                     <tr>
@@ -1380,7 +1450,7 @@ async viewParticipants() {
                                         <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">OSM Username</th>
                                         <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Team</th>
                                         <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Role</th>
-                                        <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Registered</th>
+                                        <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1391,18 +1461,55 @@ async viewParticipants() {
                                             <td style="padding: 8px; font-family: monospace; color: #666;">@${participant.osm_username}</td>
                                             <td style="padding: 8px;">
                                                 ${participant.team_assigned ?
-                                                    `<span style="background: #7D8F69; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8em;">${participant.team_name}</span>` :
+                                                    `<select
+                                                        id="admin-team-select-${participant.participant_id}"
+                                                        data-current-team="${participant.team_id}"
+                                                        style="padding: 3px 8px;
+                                                               border: 1px solid #7D8F69;
+                                                               border-radius: 3px;
+                                                               font-size: 0.85em;
+                                                               cursor: pointer;
+                                                               background: white;">
+                                                        ${teams.map(team => `
+                                                            <option value="${team.id}" ${team.id === participant.team_id ? 'selected' : ''}>
+                                                                ${team.team_name}
+                                                            </option>
+                                                        `).join('')}
+                                                    </select>` :
                                                     '<span style="color: #999;">Unassigned</span>'
                                                 }
                                             </td>
                                             <td style="padding: 8px;">
-                                                ${participant.team_assigned ? 
-                                                    `${participant.role_icon} ${participant.role_name}` : 
+                                                ${participant.team_assigned ?
+                                                    `<div style="display: flex; align-items: center; gap: 5px;">
+                                                        <span id="admin-role-icon-${participant.participant_id}">${participant.role_icon}</span>
+                                                        <select
+                                                            id="admin-role-select-${participant.participant_id}"
+                                                            style="padding: 3px 6px;
+                                                                   border: 1px solid #C4704F;
+                                                                   border-radius: 3px;
+                                                                   font-size: 0.85em;
+                                                                   cursor: pointer;">
+                                                            ${availableRoles.map(role => `
+                                                                <option value="${role.name}" ${role.name === participant.role_name ? 'selected' : ''}>
+                                                                    ${role.name}
+                                                                </option>
+                                                            `).join('')}
+                                                        </select>
+                                                    </div>` :
                                                     '<span style="color: #999;">-</span>'
                                                 }
                                             </td>
-                                            <td style="padding: 8px; font-size: 0.9em; color: #666;">
-                                                ${new Date(participant.created_at).toLocaleDateString()}
+                                            <td style="padding: 8px;">
+                                                ${participant.team_assigned ?
+                                                    `<button
+                                                        class="btn btn-primary"
+                                                        onclick="app.coordinatorSaveChanges('${participant.participant_id}')"
+                                                        style="padding: 3px 10px; font-size: 0.8em;">
+                                                        Save
+                                                    </button>` :
+                                                    ''
+                                                }
                                             </td>
                                         </tr>
                                     `).join('')}
@@ -1411,16 +1518,16 @@ async viewParticipants() {
                         </div>
                     `}
                 </div>
-                
+
                 <div style="text-align: center; margin: 20px 0;">
                     <button class="btn btn-secondary" onclick="app.closeModal()">Close</button>
                 </div>
             </div>
         `;
-        
+
         this.showModal(modalContent);
         this.showStatus('success', `Loaded ${participants.length} participants`);
-        
+
     } catch (error) {
         console.error('Error loading participants:', error);
         this.showStatus('error', `Error loading participants: ${error.message}`);
@@ -1431,11 +1538,157 @@ async viewTerritoryDetails(assignmentId) {
     this.showModal('<h3>Territory details - Implementation in progress</h3>');
 }
 
+async saveRoleChange(participantId) {
+    const selectElement = document.getElementById(`role-select-${participantId}`);
+
+    if (!selectElement) {
+        this.showStatus('error', 'Role selector not found');
+        return;
+    }
+
+    const newRoleName = selectElement.value;
+    await this.handleRoleChange(participantId, newRoleName);
+}
+
+async coordinatorSaveChanges(participantId) {
+    if (!this.supabaseManager) {
+        this.showStatus('error', 'Database not available');
+        return;
+    }
+
+    const teamSelectElement = document.getElementById(`admin-team-select-${participantId}`);
+    const roleSelectElement = document.getElementById(`admin-role-select-${participantId}`);
+
+    if (!teamSelectElement || !roleSelectElement) {
+        this.showStatus('error', 'Selectors not found');
+        return;
+    }
+
+    const newTeamId = teamSelectElement.value;
+    const newRoleName = roleSelectElement.value;
+    const currentTeamId = teamSelectElement.getAttribute('data-current-team');
+
+    try {
+        this.showStatus('info', 'Saving changes...', true);
+
+        const updates = [];
+
+        // Check if team changed
+        if (newTeamId !== currentTeamId) {
+            updates.push(this.supabaseManager.updateTeamMemberTeam(participantId, newTeamId));
+        }
+
+        // Always update role (in case it changed)
+        updates.push(this.supabaseManager.updateTeamMemberRole(participantId, newRoleName));
+
+        const results = await Promise.all(updates);
+
+        // Check if all updates succeeded
+        const failed = results.find(r => !r.success);
+        if (failed) {
+            throw new Error(failed.error);
+        }
+
+        // Find the role details
+        const availableRoles = [
+            { name: 'Pioneer', icon: '🗺️', description: 'In charge of traditional style mapping of annotating on a map' },
+            { name: 'Technician', icon: '⚡', description: 'Ensures assets are correctly named and missing voltages are added' },
+            { name: 'Seeker', icon: '🔍', description: 'Seeks out missing Power Plants, good first lines and available credible information sources, checks industries as well' }
+        ];
+
+        const roleDetails = availableRoles.find(r => r.name === newRoleName);
+
+        if (roleDetails) {
+            // Update the icon in the admin view
+            const iconElement = document.getElementById(`admin-role-icon-${participantId}`);
+            if (iconElement) {
+                iconElement.textContent = roleDetails.icon;
+            }
+
+            // Update the data attribute for team
+            teamSelectElement.setAttribute('data-current-team', newTeamId);
+        }
+
+        const changesSummary = [];
+        if (newTeamId !== currentTeamId) changesSummary.push('team');
+        changesSummary.push('role');
+
+        this.showStatus('success', `Updated ${changesSummary.join(' and ')} successfully!`);
+
+    } catch (error) {
+        console.error('Error saving changes:', error);
+        this.showStatus('error', `Failed to save changes: ${error.message}`);
+    }
+}
+
+async handleRoleChange(participantId, newRoleName) {
+    if (!this.supabaseManager) {
+        this.showStatus('error', 'Database not available');
+        return;
+    }
+
+    try {
+        this.showStatus('info', 'Updating role...', true);
+
+        const result = await this.supabaseManager.updateTeamMemberRole(participantId, newRoleName);
+
+        if (!result.success) {
+            throw new Error(result.error);
+        }
+
+        // Find the role details
+        const availableRoles = [
+            { name: 'Pioneer', icon: '🗺️', description: 'In charge of traditional style mapping of annotating on a map' },
+            { name: 'Technician', icon: '⚡', description: 'Ensures assets are correctly named and missing voltages are added' },
+            { name: 'Seeker', icon: '🔍', description: 'Seeks out missing Power Plants, good first lines and available credible information sources, checks industries as well' }
+        ];
+
+        const roleDetails = availableRoles.find(r => r.name === newRoleName);
+
+        if (roleDetails) {
+            // Update the UI elements
+            const iconElement = document.getElementById(`role-icon-${participantId}`);
+            const descriptionElement = document.getElementById(`role-description-${participantId}`);
+
+            if (iconElement) {
+                iconElement.textContent = roleDetails.icon;
+            }
+
+            if (descriptionElement) {
+                descriptionElement.textContent = roleDetails.description;
+            }
+
+            // Update currentTeam data if this participant is in the team
+            if (this.currentTeam && this.currentTeam.members) {
+                const member = this.currentTeam.members.find(m => m.participants.id === participantId);
+                if (member) {
+                    member.role_name = roleDetails.name;
+                    member.role_description = roleDetails.description;
+                    member.role_icon = roleDetails.icon;
+                }
+            }
+
+            this.showStatus('success', `Role updated to ${roleDetails.icon} ${roleDetails.name}`);
+        }
+
+    } catch (error) {
+        console.error('Error updating role:', error);
+        this.showStatus('error', `Failed to update role: ${error.message}`);
+    }
+}
+
 showTeammatesModal() {
     if (!this.currentTeam || !this.currentTeam.members) {
         this.showStatus('warning', 'No team information available');
         return;
     }
+
+    // Available roles for the dropdown
+    const availableRoles = [
+        { name: 'Pioneer', icon: '🗺️', description: 'In charge of traditional style mapping of annotating on a map' },
+        { name: 'Technician', icon: '⚡', description: 'Ensures assets are correctly named and missing voltages are added' },
+        { name: 'Seeker', icon: '🔍', description: 'Seeks out missing Power Plants, good first lines and available credible information sources, checks industries as well' }
+    ];
 
     const modalContent = `
         <div style="max-width: 600px;">
@@ -1454,6 +1707,8 @@ showTeammatesModal() {
                 <h4 style="margin-bottom: 15px;">Team Members</h4>
                 ${this.currentTeam.members.map(member => {
                     const isYou = member.participants.osm_username === this.currentUser.osmUsername;
+                    const participantId = member.participants.id;
+
                     return `
                         <div style="background: ${isYou ? 'rgba(196, 112, 79, 0.1)' : 'white'};
                                     padding: 15px;
@@ -1461,9 +1716,9 @@ showTeammatesModal() {
                                     border-radius: 8px;
                                     border-left: 4px solid ${isYou ? '#C4704F' : '#ddd'};
                                     ${isYou ? 'box-shadow: 0 2px 4px rgba(0,0,0,0.1);' : ''}">
-                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
                                 <div style="display: flex; align-items: center; gap: 10px;">
-                                    <span style="font-size: 1.8em;">${member.role_icon}</span>
+                                    <span style="font-size: 1.8em;" id="role-icon-${participantId}">${member.role_icon}</span>
                                     <div>
                                         <div style="font-weight: bold; font-size: 1.1em;">
                                             ${member.participants.first_name}
@@ -1473,8 +1728,35 @@ showTeammatesModal() {
                                     </div>
                                 </div>
                                 <div style="text-align: right;">
-                                    <div style="font-weight: bold; color: #C4704F;">${member.role_name}</div>
-                                    <div style="font-size: 0.85em; color: #666;">${member.role_description}</div>
+                                    ${isYou ? `
+                                        <div style="margin-bottom: 5px; display: flex; align-items: center; gap: 8px;">
+                                            <select
+                                                id="role-select-${participantId}"
+                                                style="font-weight: bold;
+                                                       color: #C4704F;
+                                                       padding: 5px 10px;
+                                                       border: 2px solid #C4704F;
+                                                       border-radius: 5px;
+                                                       background: white;
+                                                       cursor: pointer;
+                                                       font-size: 1em;">
+                                                ${availableRoles.map(role => `
+                                                    <option value="${role.name}" ${role.name === member.role_name ? 'selected' : ''}>
+                                                        ${role.icon} ${role.name}
+                                                    </option>
+                                                `).join('')}
+                                            </select>
+                                            <button
+                                                class="btn btn-primary"
+                                                onclick="app.saveRoleChange('${participantId}')"
+                                                style="padding: 5px 12px; font-size: 0.9em; white-space: nowrap;">
+                                                Save
+                                            </button>
+                                        </div>
+                                    ` : `
+                                        <div style="font-weight: bold; color: #C4704F; margin-bottom: 5px;">${member.role_icon} ${member.role_name}</div>
+                                    `}
+                                    <div id="role-description-${participantId}" style="font-size: 0.85em; color: #666;">${member.role_description}</div>
                                 </div>
                             </div>
                         </div>

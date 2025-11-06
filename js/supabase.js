@@ -405,31 +405,223 @@ class SupabaseTeamManager {
     // ================================
 
     /**
-     * Create teams for a session with strict role assignments
+     * Create teams for a session with configurable team size
      * @param {string} sessionId - Session identifier
+     * @param {number} teamSize - Desired team size (default: 3)
      * @returns {Promise<{success: boolean, data?: object, error?: string}>}
      */
-    async createTeamsForSession(sessionId) {
+    async createTeamsForSession(sessionId, teamSize = 3) {
         try {
-            console.log(`Creating teams for session: ${sessionId}`);
-            
+            console.log(`Creating teams for session: ${sessionId} with target team size: ${teamSize}`);
+
+            // Pre-flight validation: verify all participants belong to this session
+            const participantsResult = await this.getSessionParticipants(sessionId);
+            if (!participantsResult.success) {
+                return {
+                    success: false,
+                    error: `Failed to verify participants: ${participantsResult.error}`
+                };
+            }
+
+            const participants = participantsResult.data.participants;
+            console.log(`Session isolation check: Found ${participants.length} participants for session "${sessionId}"`);
+
+            // Verify no participants from other sessions
+            const { data: otherSessionParticipants, error: checkError } = await this.supabase
+                .from('participants')
+                .select('id, session_id')
+                .neq('session_id', sessionId)
+                .in('id', participants.map(p => p.id));
+
+            if (checkError) {
+                console.warn('Session isolation pre-check failed:', checkError);
+                // Continue anyway - the database trigger will catch any issues
+            } else if (otherSessionParticipants && otherSessionParticipants.length > 0) {
+                return {
+                    success: false,
+                    error: `Session isolation violation detected: ${otherSessionParticipants.length} participants belong to other sessions`
+                };
+            }
+
             const { data, error } = await this.supabase
                 .rpc('create_teams_with_role_assignment', {
-                    session_id_param: sessionId
+                    session_id_param: sessionId,
+                    desired_team_size: teamSize
                 });
 
             if (error) {
                 return this.handleDatabaseError(error, 'Team creation failed');
             }
 
-            console.log('Teams created successfully:', data);
+            console.log('Teams created successfully with session isolation enforced:', data);
             return {
                 success: true,
                 data: data
             };
-            
+
         } catch (error) {
             console.error('Team creation failed:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Update a team member's role
+     * @param {string} participantId - Participant UUID
+     * @param {string} newRoleName - New role name (Pioneer, Technician, or Seeker)
+     * @returns {Promise<{success: boolean, data?: object, error?: string}>}
+     */
+    async updateTeamMemberRole(participantId, newRoleName) {
+        try {
+            console.log(`Updating role for participant ${participantId} to ${newRoleName}`);
+
+            // Find the role details from teamRoles
+            const roleDetails = this.teamRoles.find(r => r.name === newRoleName);
+
+            if (!roleDetails) {
+                return {
+                    success: false,
+                    error: `Invalid role: ${newRoleName}. Must be Pioneer, Technician, or Seeker.`
+                };
+            }
+
+            // Update the team member's role
+            const { data, error } = await this.supabase
+                .from('team_members')
+                .update({
+                    role_name: roleDetails.name,
+                    role_description: roleDetails.description,
+                    role_icon: roleDetails.icon
+                })
+                .eq('participant_id', participantId)
+                .select()
+                .single();
+
+            if (error) {
+                return this.handleDatabaseError(error, 'Failed to update role');
+            }
+
+            console.log('Role updated successfully:', data);
+            return {
+                success: true,
+                data: {
+                    participant_id: participantId,
+                    role_name: roleDetails.name,
+                    role_description: roleDetails.description,
+                    role_icon: roleDetails.icon
+                }
+            };
+
+        } catch (error) {
+            console.error('Error updating team member role:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Get all teams for a session
+     * @param {string} sessionId - Session identifier
+     * @returns {Promise<{success: boolean, data?: object, error?: string}>}
+     */
+    async getSessionTeams(sessionId) {
+        try {
+            const { data, error } = await this.supabase
+                .from('teams')
+                .select('id, team_name, team_index')
+                .eq('session_id', sessionId)
+                .order('team_index');
+
+            if (error) {
+                return this.handleDatabaseError(error, 'Failed to fetch teams');
+            }
+
+            return {
+                success: true,
+                data: { teams: data }
+            };
+
+        } catch (error) {
+            console.error('Error fetching teams:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Update a team member's team assignment
+     * @param {string} participantId - Participant UUID
+     * @param {string} newTeamId - New team UUID
+     * @returns {Promise<{success: boolean, data?: object, error?: string}>}
+     */
+    async updateTeamMemberTeam(participantId, newTeamId) {
+        try {
+            console.log(`Updating team for participant ${participantId} to team ${newTeamId}`);
+
+            // Session isolation validation: verify participant and team share same session
+            const { data: participant, error: participantError } = await this.supabase
+                .from('participants')
+                .select('session_id')
+                .eq('id', participantId)
+                .single();
+
+            if (participantError) {
+                return this.handleDatabaseError(participantError, 'Failed to fetch participant');
+            }
+
+            const { data: team, error: teamError } = await this.supabase
+                .from('teams')
+                .select('session_id')
+                .eq('id', newTeamId)
+                .single();
+
+            if (teamError) {
+                return this.handleDatabaseError(teamError, 'Failed to fetch team');
+            }
+
+            // Validate session match
+            if (participant.session_id !== team.session_id) {
+                return {
+                    success: false,
+                    error: `Session isolation violation: Participant belongs to session "${participant.session_id}" but team belongs to session "${team.session_id}". Cross-session team assignments are not allowed.`
+                };
+            }
+
+            console.log(`Session isolation validated: Both participant and team belong to session "${participant.session_id}"`);
+
+            // Update the team member's team assignment
+            const { data, error } = await this.supabase
+                .from('team_members')
+                .update({
+                    team_id: newTeamId
+                })
+                .eq('participant_id', participantId)
+                .select()
+                .single();
+
+            if (error) {
+                return this.handleDatabaseError(error, 'Failed to update team assignment');
+            }
+
+            console.log('Team assignment updated successfully with session isolation enforced:', data);
+            return {
+                success: true,
+                data: {
+                    participant_id: participantId,
+                    team_id: newTeamId,
+                    session_id: participant.session_id
+                }
+            };
+
+        } catch (error) {
+            console.error('Error updating team assignment:', error);
             return {
                 success: false,
                 error: error.message
@@ -654,12 +846,13 @@ class SupabaseTeamManager {
      * Complete session setup - create teams and assign territories
      * @param {string} sessionId - Session identifier
      * @param {object} overpassAPI - OverpassAPI instance for fetching territories
+     * @param {number} teamSize - Desired team size (default: 3)
      * @returns {Promise<{success: boolean, data?: object, error?: string}>}
      */
-    async coordinatorSetupSession(sessionId, overpassAPI) {
+    async coordinatorSetupSession(sessionId, overpassAPI, teamSize = 3) {
         try {
-            console.log(`Starting coordinator setup for session: ${sessionId}`);
-            
+            console.log(`Starting coordinator setup for session: ${sessionId} with team size: ${teamSize}`);
+
             // Step 1: Validate participant count
             const participantsResult = await this.getSessionParticipants(sessionId);
             if (!participantsResult.success) {
@@ -668,24 +861,27 @@ class SupabaseTeamManager {
 
             const participants = participantsResult.data.participants;
             const participantCount = participants.length;
-            
-            // Strict validation for team formation (must be divisible by 3)
-            if (participantCount % 3 !== 0) {
+
+            // Flexible validation for team formation
+            if (participantCount < 1) {
                 return {
                     success: false,
-                    error: `Cannot form complete teams: ${participantCount} participants registered. Each team requires exactly 3 members. Please register ${3 - (participantCount % 3)} more participants or remove ${participantCount % 3} participants to proceed.`
+                    error: `Need at least 1 participant to form teams, found ${participantCount}`
                 };
             }
 
-            if (participantCount < 3) {
+            // Validate team size
+            if (teamSize < 1) {
                 return {
                     success: false,
-                    error: `Need at least 3 participants, found ${participantCount}`
+                    error: `Team size must be at least 1, got ${teamSize}`
                 };
             }
 
-            const teamCount = participantCount / 3;
-            console.log(`${participantCount} participants will form ${teamCount} complete teams`);
+            // Calculate team count based on desired team size
+            const teamCount = Math.ceil(participantCount / teamSize);
+
+            console.log(`${participantCount} participants will be distributed across approximately ${teamCount} teams of size ${teamSize}`);
 
             // Step 2: Fetch and populate territories
             console.log('Fetching territories from Overpass API...');
@@ -707,8 +903,8 @@ class SupabaseTeamManager {
                 // Continue anyway - territories might already exist
             }
 
-            // Step 4: Create teams
-            const teamResult = await this.createTeamsForSession(sessionId);
+            // Step 4: Create teams with specified team size
+            const teamResult = await this.createTeamsForSession(sessionId, teamSize);
             if (!teamResult.success) {
                 return {
                     success: false,
