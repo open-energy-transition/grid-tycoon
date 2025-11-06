@@ -581,6 +581,21 @@ body:not(:has(.registration-page:not([style*="display: none"]))) .header-brand:h
    COORDINATOR DASHBOARD
    ============================================================================ */
 
+/* Satellite image background when coordinator section is visible */
+body:has(#coordinatorSection:not([style*="display: none"])) {
+    background-image: url('../media/backgrounds/sat-image-3.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+}
+
+/* Adjust container for coordinator section */
+body:has(#coordinatorSection:not([style*="display: none"])) .container {
+    background: transparent;
+    padding-top: 80px; /* Account for fixed header */
+}
+
 .coordinator-dashboard {
     color: var(--color-text-primary);
 }
@@ -764,9 +779,12 @@ body:not(:has(.registration-page:not([style*="display: none"]))) .header-brand:h
    MAPPING INTERFACE
    ============================================================================ */
 
-/* Dark themed background when mapping section is visible */
+/* Satellite image background when mapping section is visible */
 body:has(#mappingSection:not([style*="display: none"])) {
-    background: linear-gradient(135deg, #5C4A3A 0%, #6B5947 50%, #5C4A3A 100%);
+    background-image: url('../media/backgrounds/sat-image-5.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
     background-attachment: fixed;
 }
 
