@@ -19,6 +19,7 @@ class TerritoryMap {
         // Map instance and layers
         this.map = null;
         this.territoriesLayer = null;
+        this.osmoseLayer = null; // Layer for Osmose quality assurance issues
         this.markers = new Map(); // territoryId -> marker instance
 
         // State tracking
@@ -1049,8 +1050,142 @@ out geom;
             territoriesDisplayed: this.markers.size,
             currentZoom: this.map ? this.map.getZoom() : null,
             currentCenter: this.map ? this.map.getCenter() : null,
-            teamColor: this.teamColor
+            teamColor: this.teamColor,
+            osmoseIssuesDisplayed: this.osmoseLayer ? this.osmoseLayer.getLayers().length : 0
         };
+    }
+
+    // ================================
+    // OSMOSE QUALITY ASSURANCE LAYER
+    // ================================
+
+    /**
+     * Display Osmose QA issues on the map
+     * @param {string} territoryName - Name of the territory
+     * @param {object} geoJSON - GeoJSON FeatureCollection of Osmose issues
+     * @param {number} issueCount - Number of issues
+     */
+    displayOsmoseIssues(territoryName, geoJSON, issueCount) {
+        if (!this.isReady()) {
+            console.error('Map not initialized');
+            return false;
+        }
+
+        // Clear existing Osmose layer if present
+        this.clearOsmoseLayer();
+
+        console.log(`Displaying ${issueCount} Osmose issues for ${territoryName}`);
+
+        // Create new Osmose layer
+        this.osmoseLayer = L.featureGroup();
+
+        // Add markers for each issue
+        if (geoJSON && geoJSON.features && geoJSON.features.length > 0) {
+            geoJSON.features.forEach(feature => {
+                const coords = feature.geometry.coordinates;
+                const props = feature.properties;
+
+                // Create a red circle marker for Osmose issues
+                const marker = L.circleMarker([coords[1], coords[0]], {
+                    radius: 6,
+                    fillColor: '#e74c3c',  // Red color for issues
+                    color: '#c0392b',       // Darker red border
+                    weight: 2,
+                    opacity: 0.9,
+                    fillOpacity: 0.7
+                });
+
+                // Create popup content
+                const popupContent = `
+                    <div style="max-width: 250px;">
+                        <h4 style="margin: 0 0 8px 0; color: #e74c3c; font-size: 0.95em;">
+                            🔍 Osmose Issue
+                        </h4>
+                        <div style="margin: 5px 0;">
+                            <strong>Type:</strong> ${props.title || 'Quality Issue'}
+                        </div>
+                        ${props.subtitle ? `
+                            <div style="margin: 5px 0; font-size: 0.9em; color: #666;">
+                                ${props.subtitle}
+                            </div>
+                        ` : ''}
+                        <div style="margin: 5px 0; font-size: 0.85em; color: #666;">
+                            <strong>Issue ID:</strong> ${props.id}
+                        </div>
+                        <div style="margin: 5px 0; font-size: 0.85em; color: #666;">
+                            <strong>Classification:</strong> Item ${props.item}, Class ${props.class}
+                        </div>
+                        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #ddd;">
+                            <a href="https://osmose.openstreetmap.fr/en/map/#zoom=16&lat=${props.lat}&lon=${props.lon}&item=${props.item}"
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               style="color: #e74c3c; text-decoration: none; font-size: 0.85em;">
+                                View on Osmose →
+                            </a>
+                        </div>
+                    </div>
+                `;
+
+                marker.bindPopup(popupContent, {
+                    maxWidth: 300,
+                    className: 'osmose-popup'
+                });
+
+                marker.bindTooltip(
+                    `🔍 ${props.title || 'Osmose Issue'}`,
+                    { direction: 'top', offset: [0, -8] }
+                );
+
+                marker.addTo(this.osmoseLayer);
+            });
+
+            // Add the Osmose layer to the map
+            this.osmoseLayer.addTo(this.map);
+
+            console.log(`Successfully displayed ${geoJSON.features.length} Osmose markers`);
+
+            return true;
+        } else {
+            console.log('No Osmose issues to display');
+            return false;
+        }
+    }
+
+    /**
+     * Clear Osmose issues layer from map
+     */
+    clearOsmoseLayer() {
+        if (this.osmoseLayer) {
+            this.map.removeLayer(this.osmoseLayer);
+            this.osmoseLayer = null;
+            console.log('Osmose layer cleared');
+        }
+    }
+
+    /**
+     * Check if Osmose layer is currently displayed
+     * @returns {boolean}
+     */
+    hasOsmoseLayer() {
+        return this.osmoseLayer !== null && this.osmoseLayer.getLayers().length > 0;
+    }
+
+    /**
+     * Toggle Osmose layer visibility
+     */
+    toggleOsmoseLayer() {
+        if (!this.osmoseLayer) {
+            console.warn('No Osmose layer to toggle');
+            return;
+        }
+
+        if (this.map.hasLayer(this.osmoseLayer)) {
+            this.map.removeLayer(this.osmoseLayer);
+            console.log('Osmose layer hidden');
+        } else {
+            this.osmoseLayer.addTo(this.map);
+            console.log('Osmose layer shown');
+        }
     }
 
     // ================================
@@ -1063,9 +1198,11 @@ out geom;
     destroy() {
         if (this.map) {
             console.log('Destroying map instance');
+            this.clearOsmoseLayer();
             this.map.remove();
             this.map = null;
             this.territoriesLayer = null;
+            this.osmoseLayer = null;
             this.markers.clear();
             this.currentTerritories = [];
             this.mapInitialized = false;

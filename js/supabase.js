@@ -629,6 +629,97 @@ class SupabaseTeamManager {
         }
     }
 
+    /**
+     * Assign an unassigned participant to a team (create new team_member record)
+     * @param {string} participantId - Participant UUID
+     * @param {string} teamId - Team UUID
+     * @param {string} roleName - Role name (Pioneer, Technician, or Seeker)
+     * @returns {Promise<{success: boolean, data?: object, error?: string}>}
+     */
+    async assignParticipantToTeam(participantId, teamId, roleName) {
+        try {
+            console.log(`Assigning participant ${participantId} to team ${teamId} with role ${roleName}`);
+
+            // Find the role details from teamRoles
+            const roleDetails = this.teamRoles.find(r => r.name === roleName);
+
+            if (!roleDetails) {
+                return {
+                    success: false,
+                    error: `Invalid role: ${roleName}. Must be Pioneer, Technician, or Seeker.`
+                };
+            }
+
+            // Session isolation validation: verify participant and team share same session
+            const { data: participant, error: participantError } = await this.supabase
+                .from('participants')
+                .select('session_id')
+                .eq('id', participantId)
+                .single();
+
+            if (participantError) {
+                return this.handleDatabaseError(participantError, 'Failed to fetch participant');
+            }
+
+            const { data: team, error: teamError } = await this.supabase
+                .from('teams')
+                .select('session_id')
+                .eq('id', teamId)
+                .single();
+
+            if (teamError) {
+                return this.handleDatabaseError(teamError, 'Failed to fetch team');
+            }
+
+            // Validate session match
+            if (participant.session_id !== team.session_id) {
+                return {
+                    success: false,
+                    error: `Session isolation violation: Participant belongs to session "${participant.session_id}" but team belongs to session "${team.session_id}". Cross-session team assignments are not allowed.`
+                };
+            }
+
+            console.log(`Session isolation validated: Both participant and team belong to session "${participant.session_id}"`);
+
+            // Insert new team member record
+            const { data, error } = await this.supabase
+                .from('team_members')
+                .insert([{
+                    participant_id: participantId,
+                    team_id: teamId,
+                    role_name: roleDetails.name,
+                    role_description: roleDetails.description,
+                    role_icon: roleDetails.icon
+                }])
+                .select()
+                .single();
+
+            if (error) {
+                return this.handleDatabaseError(error, 'Failed to assign participant to team');
+            }
+
+            console.log('Participant assigned to team successfully with session isolation enforced:', data);
+            return {
+                success: true,
+                data: {
+                    participant_id: participantId,
+                    team_id: teamId,
+                    role_name: roleDetails.name,
+                    role_description: roleDetails.description,
+                    role_icon: roleDetails.icon,
+                    session_id: participant.session_id
+                }
+            };
+
+        } catch (error) {
+            console.error('Error assigning participant to team:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+
     // ================================
     // TERRITORY MANAGEMENT
     // ================================

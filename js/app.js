@@ -648,11 +648,15 @@ renderTerritoryActions(territory) {
             </button>
         `;
     }
-    
+
     return `
-        <button class="btn btn-success" onclick="app.loadTerritoryInJOSM('${territory.id}')" 
+        <button class="btn btn-success" onclick="app.loadTerritoryInJOSM('${territory.id}')"
                 ${!territory.overpass_ready ? 'disabled title="Territory not ready for JOSM"' : ''}>
             Load in JOSM
+        </button>
+        <button class="btn btn-info" onclick="app.loadOsmoseIssues('${territory.id}')"
+                title="Download Osmose quality assurance issues as GeoJSON file">
+            📥 Download Osmose QA
         </button>
         ${territory.status === 'available' ? `
             <button class="btn btn-warning" onclick="app.startWorkingOnTerritory('${territory.id}')">
@@ -820,11 +824,11 @@ async markTerritoryComplete(assignmentId) {
     if (!confirm('Mark this territory as complete? This action cannot be easily undone.')) {
         return;
     }
-    
+
     try {
         const result = await this.supabaseManager.updateTerritoryStatus(
-            assignmentId, 
-            'completed', 
+            assignmentId,
+            'completed',
             `Completed by ${this.currentUser.firstName} on ${new Date().toISOString()}`
         );
 
@@ -837,6 +841,61 @@ async markTerritoryComplete(assignmentId) {
     } catch (error) {
         console.error('Error marking territory complete:', error);
         this.showStatus('error', `Error: ${error.message}`);
+    }
+}
+
+// ================================
+// OSMOSE QUALITY ASSURANCE INTEGRATION
+// ================================
+
+/**
+ * Trigger automatic download of Osmose QA issues for a territory as a GeoJSON file
+ * @param {string} assignmentId - Territory assignment ID
+ */
+async loadOsmoseIssues(assignmentId) {
+    // Check if Osmose download function is available
+    if (typeof downloadOsmoseIssuesForTerritory !== 'function') {
+        this.showStatus('error', 'Osmose integration not loaded. Please refresh the page.');
+        return;
+    }
+
+    this.showStatus('info', 'Triggering Osmose quality assurance issues download...', true);
+
+    try {
+        // Get territory data from database
+        const territoryResult = await this.supabaseManager.getTerritoryForOverpass(assignmentId);
+
+        if (!territoryResult.success) {
+            throw new Error(territoryResult.error);
+        }
+
+        const territory = territoryResult.data;
+
+        if (!territory.iso_code) {
+            throw new Error('Territory does not have ISO code for Osmose loading');
+        }
+
+        console.log(`Triggering Osmose download for ${territory.territory_name} (${territory.iso_code})`);
+
+        // Trigger automatic download of Osmose issues for this territory
+        const downloadResult = await downloadOsmoseIssuesForTerritory(
+            territory.territory_name,
+            territory.iso_code
+        );
+
+        if (!downloadResult.success) {
+            throw new Error(downloadResult.error);
+        }
+
+        const { fileName, territoryName } = downloadResult.data;
+
+        this.showStatus('success',
+            `✅ Downloaded Osmose issues for ${territoryName}. Check your downloads folder for ${fileName}. The file can be loaded into JOSM.`
+        );
+
+    } catch (error) {
+        console.error('Error downloading Osmose issues:', error);
+        this.showStatus('error', `Error downloading Osmose issues: ${error.message}`);
     }
 }
 
@@ -1476,7 +1535,21 @@ async viewParticipants() {
                                                             </option>
                                                         `).join('')}
                                                     </select>` :
-                                                    '<span style="color: #999;">Unassigned</span>'
+                                                    `<select
+                                                        id="admin-team-select-unassigned-${participant.participant_id}"
+                                                        style="padding: 3px 8px;
+                                                               border: 1px solid #7D8F69;
+                                                               border-radius: 3px;
+                                                               font-size: 0.85em;
+                                                               cursor: pointer;
+                                                               background: white;">
+                                                        <option value="">-- Select Team --</option>
+                                                        ${teams.map(team => `
+                                                            <option value="${team.id}">
+                                                                ${team.team_name}
+                                                            </option>
+                                                        `).join('')}
+                                                    </select>`
                                                 }
                                             </td>
                                             <td style="padding: 8px;">
@@ -1497,7 +1570,19 @@ async viewParticipants() {
                                                             `).join('')}
                                                         </select>
                                                     </div>` :
-                                                    '<span style="color: #999;">-</span>'
+                                                    `<select
+                                                        id="admin-role-select-unassigned-${participant.participant_id}"
+                                                        style="padding: 3px 6px;
+                                                               border: 1px solid #C4704F;
+                                                               border-radius: 3px;
+                                                               font-size: 0.85em;
+                                                               cursor: pointer;">
+                                                        ${availableRoles.map(role => `
+                                                            <option value="${role.name}" ${role.name === 'Pioneer' ? 'selected' : ''}>
+                                                                ${role.icon} ${role.name}
+                                                            </option>
+                                                        `).join('')}
+                                                    </select>`
                                                 }
                                             </td>
                                             <td style="padding: 8px;">
@@ -1508,7 +1593,12 @@ async viewParticipants() {
                                                         style="padding: 3px 10px; font-size: 0.8em;">
                                                         Save
                                                     </button>` :
-                                                    ''
+                                                    `<button
+                                                        class="btn btn-success"
+                                                        onclick="app.coordinatorAssignParticipant('${participant.participant_id}')"
+                                                        style="padding: 3px 10px; font-size: 0.8em;">
+                                                        Assign to Team
+                                                    </button>`
                                                 }
                                             </td>
                                         </tr>
@@ -1618,6 +1708,48 @@ async coordinatorSaveChanges(participantId) {
     } catch (error) {
         console.error('Error saving changes:', error);
         this.showStatus('error', `Failed to save changes: ${error.message}`);
+    }
+}
+
+async coordinatorAssignParticipant(participantId) {
+    if (!this.supabaseManager) {
+        this.showStatus('error', 'Database not available');
+        return;
+    }
+
+    const teamSelectElement = document.getElementById(`admin-team-select-unassigned-${participantId}`);
+    const roleSelectElement = document.getElementById(`admin-role-select-unassigned-${participantId}`);
+
+    if (!teamSelectElement || !roleSelectElement) {
+        this.showStatus('error', 'Selectors not found');
+        return;
+    }
+
+    const teamId = teamSelectElement.value;
+    const roleName = roleSelectElement.value;
+
+    if (!teamId) {
+        this.showStatus('error', 'Please select a team');
+        return;
+    }
+
+    try {
+        this.showStatus('info', 'Assigning participant to team...', true);
+
+        const result = await this.supabaseManager.assignParticipantToTeam(participantId, teamId, roleName);
+
+        if (!result.success) {
+            throw new Error(result.error);
+        }
+
+        this.showStatus('success', 'Participant assigned to team successfully!');
+
+        // Reload the participants modal to show updated data
+        await this.viewParticipants();
+
+    } catch (error) {
+        console.error('Error assigning participant:', error);
+        this.showStatus('error', `Failed to assign participant: ${error.message}`);
     }
 }
 
