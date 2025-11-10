@@ -678,6 +678,11 @@ renderTerritoryActions(territory) {
                 Start Working
             </button>
         ` : ''}
+        ${territory.status === 'current' ? `
+            <button class="btn btn-warning" onclick="app.stopWorkingOnTerritory('${territory.id}')">
+                Stop Mapping
+            </button>
+        ` : ''}
         <button class="btn btn-danger" onclick="app.markTerritoryComplete('${territory.id}')">
             Mark Complete
         </button>
@@ -818,8 +823,8 @@ async checkJOSMStatus() {
 async startWorkingOnTerritory(assignmentId) {
     try {
         const result = await this.supabaseManager.updateTerritoryStatus(
-            assignmentId, 
-            'current', 
+            assignmentId,
+            'current',
             `Started working on ${new Date().toISOString()}`
         );
 
@@ -831,6 +836,26 @@ async startWorkingOnTerritory(assignmentId) {
         }
     } catch (error) {
         console.error('Error starting work on territory:', error);
+        this.showStatus('error', `Error: ${error.message}`);
+    }
+}
+
+async stopWorkingOnTerritory(assignmentId) {
+    try {
+        const result = await this.supabaseManager.updateTerritoryStatus(
+            assignmentId,
+            'available',
+            `Stopped working on ${new Date().toISOString()}`
+        );
+
+        if (result.success) {
+            this.showStatus('success', 'Stopped working on territory');
+            await this.refreshTerritories();
+        } else {
+            throw new Error(result.error);
+        }
+    } catch (error) {
+        console.error('Error stopping work on territory:', error);
         this.showStatus('error', `Error: ${error.message}`);
     }
 }
