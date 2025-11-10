@@ -38,7 +38,7 @@ async init() {
         await this.initializeComponents();
         this.setupEventHandlers();
         this.initializeTheme();
-        this.checkSavedSession();
+        await this.checkSavedSession();
 
         console.log('Grid Tycoon application ready');
 
@@ -127,23 +127,67 @@ initializeTheme() {
     console.log('Theme initialized: light mode');
 }
 
-checkSavedSession() {
+async checkSavedSession() {
     try {
         const savedUser = sessionStorage.getItem('gridTycoonUser');
-        if (savedUser) {
-            const userData = JSON.parse(savedUser);
-            console.log(`Restored session for: ${userData.firstName}`);
-            
-            if (userData.firstName && userData.osmUsername && userData.sessionId) {
-                this.currentUser = userData;
-                this.isCoordinator = userData.isCoordinator || false;
-                
-                this.showStatus('info', `Welcome back, ${userData.firstName}! Click "Check Status" to continue.`);
+        if (!savedUser) {
+            // No saved session - user needs to log in
+            return;
+        }
+
+        const userData = JSON.parse(savedUser);
+        console.log(`Restored session for: ${userData.firstName}`);
+
+        if (!userData.firstName || !userData.osmUsername || !userData.sessionId) {
+            // Invalid session data
+            console.warn('Invalid session data, clearing session');
+            sessionStorage.removeItem('gridTycoonUser');
+            return;
+        }
+
+        // Restore user data
+        this.currentUser = userData;
+        this.isCoordinator = userData.isCoordinator || false;
+
+        // Hide landing page immediately
+        const landingSection = document.getElementById('landingSection');
+        if (landingSection) {
+            landingSection.style.display = 'none';
+        }
+
+        // Show header
+        const header = document.querySelector('.header');
+        if (header) {
+            header.style.display = 'block';
+        }
+
+        // Show status
+        this.showStatus('info', `Welcome back, ${userData.firstName}! Restoring your session...`, true);
+
+        // Restore the appropriate view based on user type and mode
+        if (this.config.app.mockMode) {
+            console.log('Restoring session in mock mode');
+            this.handleMockMode();
+        } else if (!this.supabaseManager) {
+            // Database not available - clear session and show error
+            console.error('Cannot restore session: database not available');
+            sessionStorage.removeItem('gridTycoonUser');
+            this.showStatus('error', 'Database connection failed. Please try logging in again.');
+            this.showSection('registrationSection');
+        } else {
+            // Database available - restore session
+            console.log(`Restoring session for ${this.isCoordinator ? 'coordinator' : 'participant'}`);
+            if (this.isCoordinator) {
+                await this.handleCoordinatorLogin();
+            } else {
+                await this.handleParticipantLogin();
             }
         }
     } catch (error) {
-        console.warn('Error checking saved session:', error);
+        console.error('Error checking saved session:', error);
         sessionStorage.removeItem('gridTycoonUser');
+        this.showStatus('error', 'Session restoration failed. Please log in again.');
+        this.showSection('registrationSection');
     }
 }
 
