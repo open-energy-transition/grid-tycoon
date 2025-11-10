@@ -1525,16 +1525,23 @@ renderCoordinatorDashboard({ sessionId, user, participants, progress, teamFormat
 
 renderTeamsOverview(teams) {
     if (!teams || teams.length === 0) return '';
-    
+
     return `
         <div class="teams-overview">
             <h4>Teams Overview</h4>
             <div class="teams-grid">
                 ${teams.map((team, index) => `
-                    <div class="team-card team-color-${index % 6}">
+                    <div class="team-card team-color-${index % 6}"
+                         onclick="app.viewTeamDetails('${team.team_id}', '${team.team_name}')"
+                         style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;"
+                         onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.15)';"
+                         onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='';">
                         <h5>${team.team_name}</h5>
                         <p><strong>Progress:</strong> ${team.territories_completed}/${team.territories_assigned} (${team.completion_percentage}%)</p>
                         <p><strong>Members:</strong> ${team.member_count}</p>
+                        <p style="font-size: 0.85em; color: #666; margin-top: 10px;">
+                            <em>Click to view details</em>
+                        </p>
                     </div>
                 `).join('')}
             </div>
@@ -1754,6 +1761,153 @@ async viewParticipants() {
 
 async viewTerritoryDetails(assignmentId) {
     this.showModal('<h3>Territory details - Implementation in progress</h3>');
+}
+
+async viewTeamDetails(teamId, teamName) {
+    if (!this.supabaseManager) {
+        this.showStatus('error', 'Database not available');
+        return;
+    }
+
+    try {
+        this.showStatus('info', 'Loading team details...', true);
+
+        const result = await this.supabaseManager.getTeamDetails(teamId);
+
+        if (!result.success) {
+            throw new Error(result.error);
+        }
+
+        const { team, members, territories } = result.data;
+
+        // Count territories by status
+        const availableTerritories = territories.filter(t => t.status === 'available').length;
+        const inProgressTerritories = territories.filter(t => t.status === 'current').length;
+        const completedTerritories = territories.filter(t => t.status === 'completed').length;
+
+        const modalContent = `
+            <div style="max-width: 800px;">
+                <h3 style="color: #2c3e50; border-bottom: 2px solid #6B8E8F; padding-bottom: 10px;">
+                    👥 ${teamName} - Team Details
+                </h3>
+
+                <!-- Team Summary -->
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px; text-align: center;">
+                        <div>
+                            <div style="font-size: 1.5em; font-weight: bold; color: #6B8E8F;">${members.length}</div>
+                            <div style="font-size: 0.9em;">Members</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 1.5em; font-weight: bold; color: #7D8F69;">${completedTerritories}</div>
+                            <div style="font-size: 0.9em;">Completed</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 1.5em; font-weight: bold; color: #C4704F;">${inProgressTerritories}</div>
+                            <div style="font-size: 0.9em;">In Progress</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 1.5em; font-weight: bold; color: #D4A574;">${availableTerritories}</div>
+                            <div style="font-size: 0.9em;">Available</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Team Members Section -->
+                <div style="margin: 25px 0;">
+                    <h4 style="color: #6B8E8F; margin-bottom: 15px;">Team Members</h4>
+                    ${members.length === 0 ? `
+                        <div style="text-align: center; padding: 30px; background: #F7EFE3; border-radius: 8px; color: #6B5D4F;">
+                            No members assigned to this team yet.
+                        </div>
+                    ` : `
+                        <div style="display: grid; gap: 10px;">
+                            ${members.map(member => `
+                                <div style="background: white;
+                                            padding: 12px;
+                                            border-radius: 8px;
+                                            border-left: 4px solid #6B8E8F;
+                                            display: flex;
+                                            align-items: center;
+                                            gap: 12px;
+                                            box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                    <span style="font-size: 1.5em;">${member.role_icon}</span>
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: bold; font-size: 1em;">
+                                            ${member.participants.first_name}
+                                        </div>
+                                        <div style="font-size: 0.85em; color: #666;">
+                                            @${member.participants.osm_username} · ${member.role_name}
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `}
+                </div>
+
+                <!-- Territories Section -->
+                <div style="margin: 25px 0;">
+                    <h4 style="color: #6B8E8F; margin-bottom: 15px;">Assigned Territories (${territories.length})</h4>
+                    ${territories.length === 0 ? `
+                        <div style="text-align: center; padding: 30px; background: #F7EFE3; border-radius: 8px; color: #6B5D4F;">
+                            No territories assigned to this team yet.
+                        </div>
+                    ` : `
+                        <div style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px;">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead style="background: #f8f9fa; position: sticky; top: 0;">
+                                    <tr>
+                                        <th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Territory</th>
+                                        <th style="padding: 10px; text-align: center; border-bottom: 1px solid #ddd;">Status</th>
+                                        <th style="padding: 10px; text-align: center; border-bottom: 1px solid #ddd;">ISO Code</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${territories.map(territory => {
+                                        const statusStyle =
+                                            territory.status === 'completed' ? 'background: #7D8F69; color: white;' :
+                                            territory.status === 'current' ? 'background: #C4704F; color: white;' :
+                                            'background: #D4A574; color: white;';
+
+                                        const statusText =
+                                            territory.status === 'completed' ? 'Completed' :
+                                            territory.status === 'current' ? 'In Progress' :
+                                            'Available';
+
+                                        return `
+                                            <tr style="border-bottom: 1px solid #eee;">
+                                                <td style="padding: 10px;">${territory.territory_name}</td>
+                                                <td style="padding: 10px; text-align: center;">
+                                                    <span style="padding: 4px 12px; border-radius: 12px; font-size: 0.85em; font-weight: 500; ${statusStyle}">
+                                                        ${statusText}
+                                                    </span>
+                                                </td>
+                                                <td style="padding: 10px; text-align: center; font-family: monospace; font-size: 0.9em; color: #666;">
+                                                    ${territory.iso_code || 'N/A'}
+                                                </td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    `}
+                </div>
+
+                <div style="text-align: center; margin: 20px 0;">
+                    <button class="btn btn-secondary" onclick="app.closeModal()">Close</button>
+                </div>
+            </div>
+        `;
+
+        this.showModal(modalContent);
+        this.showStatus('success', `Loaded details for ${teamName}`);
+
+    } catch (error) {
+        console.error('Error loading team details:', error);
+        this.showStatus('error', `Error loading team details: ${error.message}`);
+    }
 }
 
 async saveRoleChange(participantId) {

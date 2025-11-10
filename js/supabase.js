@@ -556,6 +556,70 @@ class SupabaseTeamManager {
     }
 
     /**
+     * Get detailed team information including members and territories
+     * @param {string} teamId - Team UUID
+     * @returns {Promise<{success: boolean, data?: object, error?: string}>}
+     */
+    async getTeamDetails(teamId) {
+        try {
+            console.log(`Fetching detailed info for team: ${teamId}`);
+
+            // Get team basic info
+            const { data: teamData, error: teamError } = await this.supabase
+                .from('teams')
+                .select('id, team_name, team_index, session_id')
+                .eq('id', teamId)
+                .single();
+
+            if (teamError) {
+                return this.handleDatabaseError(teamError, 'Failed to fetch team info');
+            }
+
+            // Get team members with their roles
+            const { data: membersData, error: membersError } = await this.supabase
+                .from('team_members')
+                .select(`
+                    role_name,
+                    role_description,
+                    role_icon,
+                    participants (
+                        id,
+                        first_name,
+                        osm_username
+                    )
+                `)
+                .eq('team_id', teamId)
+                .order('role_name');
+
+            if (membersError) {
+                return this.handleDatabaseError(membersError, 'Failed to fetch team members');
+            }
+
+            // Get team territories with status
+            const territoriesResult = await this.getTeamTerritories(teamId);
+            if (!territoriesResult.success) {
+                return territoriesResult;
+            }
+
+            return {
+                success: true,
+                data: {
+                    team: teamData,
+                    members: membersData || [],
+                    territories: territoriesResult.data.territories || []
+                }
+            };
+
+        } catch (error) {
+            console.error('Error fetching team details:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+
+    /**
      * Update a team member's team assignment
      * @param {string} participantId - Participant UUID
      * @param {string} newTeamId - New team UUID
