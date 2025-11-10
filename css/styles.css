@@ -12,7 +12,7 @@
    ============================================================================ */
 
 :root {
-    /* Earthy Color Palette */
+    /* Earthy Color Palette - Light Theme */
     --color-primary: #C4704F;
     --color-primary-hover: #A85C3F;
     --color-primary-light: #F5E6DF;
@@ -72,6 +72,92 @@
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+/* Dark Theme Colors */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        /* Earthy Color Palette - Dark Theme */
+        --color-primary: #E89B7A;
+        --color-primary-hover: #F0B090;
+        --color-primary-light: #3D2C24;
+
+        --color-success: #9DB384;
+        --color-success-light: #2A3324;
+
+        --color-warning: #E5C18F;
+        --color-warning-light: #3D3428;
+
+        --color-danger: #D88282;
+        --color-danger-light: #3D2828;
+
+        --color-info: #8DB5B6;
+        --color-info-light: #283538;
+
+        --color-secondary: #B39575;
+        --color-secondary-light: #342D24;
+
+        /* Text Colors */
+        --color-text-primary: #E8DED3;
+        --color-text-secondary: #C4B8AB;
+        --color-text-muted: #8B7F72;
+
+        /* Background Colors */
+        --color-bg-primary: #1A1511;
+        --color-bg-secondary: #241E19;
+        --color-bg-tertiary: #2E2620;
+
+        /* Border Colors */
+        --color-border: #3D342C;
+        --color-border-light: #2E2620;
+
+        /* Shadows - Enhanced for dark mode */
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+    }
+}
+
+/* Manual dark theme override */
+[data-theme="dark"] {
+    /* Earthy Color Palette - Dark Theme */
+    --color-primary: #E89B7A;
+    --color-primary-hover: #F0B090;
+    --color-primary-light: #3D2C24;
+
+    --color-success: #9DB384;
+    --color-success-light: #2A3324;
+
+    --color-warning: #E5C18F;
+    --color-warning-light: #3D3428;
+
+    --color-danger: #D88282;
+    --color-danger-light: #3D2828;
+
+    --color-info: #8DB5B6;
+    --color-info-light: #283538;
+
+    --color-secondary: #B39575;
+    --color-secondary-light: #342D24;
+
+    /* Text Colors */
+    --color-text-primary: #E8DED3;
+    --color-text-secondary: #C4B8AB;
+    --color-text-muted: #8B7F72;
+
+    /* Background Colors */
+    --color-bg-primary: #1A1511;
+    --color-bg-secondary: #241E19;
+    --color-bg-tertiary: #2E2620;
+
+    /* Border Colors */
+    --color-border: #3D342C;
+    --color-border-light: #2E2620;
+
+    /* Shadows - Enhanced for dark mode */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
 }
 
 /* ============================================================================
@@ -305,7 +391,7 @@ body:not(:has(.registration-page:not([style*="display: none"]))) .header-brand:h
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     z-index: 999;
     overflow-y: auto;
 }
@@ -319,7 +405,7 @@ body:not(:has(.registration-page:not([style*="display: none"]))) .header-brand:h
     border-bottom: 1px solid var(--color-border-light);
     max-width: 500px;
     width: 100%;
-    margin: 0 auto;
+    margin: 120px auto 0;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     position: relative;
     z-index: 1;
@@ -1164,6 +1250,11 @@ body:has(#mappingSection:not([style*="display: none"])) {
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    transition: opacity 0.3s ease;
+}
+
+.nav-brand:hover {
+    opacity: 0.8;
 }
 
 .nav-logo {
@@ -1331,7 +1422,12 @@ body:has(#mappingSection:not([style*="display: none"])) {
         padding: var(--spacing-md);
     }
 
-    .registration-page .section-header,
+    .registration-page .section-header {
+        margin-top: 100px;
+        padding: var(--spacing-lg);
+        max-width: 95%;
+    }
+
     .registration-page .form-container {
         padding: var(--spacing-lg);
         max-width: 95%;
@@ -1459,7 +1555,12 @@ body:has(#mappingSection:not([style*="display: none"])) {
         padding: var(--spacing-sm);
     }
 
-    .registration-page .section-header,
+    .registration-page .section-header {
+        margin-top: 80px;
+        padding: var(--spacing-md);
+        max-width: 100%;
+    }
+
     .registration-page .form-container {
         padding: var(--spacing-md);
         max-width: 100%;
@@ -1570,4 +1671,492 @@ body:has(#mappingSection:not([style*="display: none"])) {
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
     border: 0;
+}
+
+/* ============================================================================
+   HOW TO PLAY GUIDE PAGE STYLES
+   ============================================================================ */
+
+/* How to Play Page Layout - Always Dark Theme */
+.how-to-play-page {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #241E19;
+    overflow-y: auto;
+    z-index: 1000;
+
+    /* Force dark theme colors for this page */
+    --color-primary: #E89B7A;
+    --color-primary-hover: #F0B090;
+    --color-primary-light: #3D2C24;
+
+    --color-success: #9DB384;
+    --color-success-light: #2A3324;
+
+    --color-warning: #E5C18F;
+    --color-warning-light: #3D3428;
+
+    --color-danger: #D88282;
+    --color-danger-light: #3D2828;
+
+    --color-info: #8DB5B6;
+    --color-info-light: #283538;
+
+    --color-secondary: #B39575;
+    --color-secondary-light: #342D24;
+
+    /* Text Colors */
+    --color-text-primary: #E8DED3;
+    --color-text-secondary: #C4B8AB;
+    --color-text-muted: #8B7F72;
+
+    /* Background Colors */
+    --color-bg-primary: #1A1511;
+    --color-bg-secondary: #241E19;
+    --color-bg-tertiary: #2E2620;
+
+    /* Border Colors */
+    --color-border: #3D342C;
+    --color-border-light: #2E2620;
+
+    /* Shadows - Enhanced for dark mode */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+}
+
+.guide-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: var(--spacing-xl) var(--spacing-lg);
+}
+
+.guide-content {
+    background: var(--color-bg-primary);
+    padding: var(--spacing-xl);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+}
+
+/* Guide Typography */
+.guide-main-title {
+    font-size: 3rem;
+    font-weight: 800;
+    color: var(--color-primary);
+    margin-bottom: var(--spacing-sm);
+    text-align: center;
+    letter-spacing: -0.02em;
+}
+
+.guide-main-subtitle {
+    font-size: var(--font-size-lg);
+    color: var(--color-text-secondary);
+    text-align: center;
+    margin-bottom: var(--spacing-xl);
+    padding-bottom: var(--spacing-xl);
+    border-bottom: 2px solid var(--color-border-light);
+}
+
+.guide-section {
+    margin: var(--spacing-xl) 0;
+    padding: var(--spacing-lg) 0;
+}
+
+.section-title {
+    font-size: var(--font-size-2xl);
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin-bottom: var(--spacing-lg);
+    padding-left: var(--spacing-md);
+    border-left: 4px solid var(--color-primary);
+}
+
+.section-title-centered {
+    font-size: var(--font-size-2xl);
+    font-weight: 700;
+    color: var(--color-primary);
+    text-align: center;
+    margin-bottom: var(--spacing-md);
+}
+
+.guide-section h3 {
+    font-size: var(--font-size-xl);
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin-top: var(--spacing-lg);
+    margin-bottom: var(--spacing-md);
+}
+
+.guide-section h4 {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin-top: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+}
+
+.guide-section p {
+    color: var(--color-text-secondary);
+    line-height: 1.8;
+    margin-bottom: var(--spacing-md);
+}
+
+.guide-section a {
+    color: var(--color-primary);
+    text-decoration: underline;
+    transition: color 0.2s ease;
+}
+
+.guide-section a:hover {
+    color: var(--color-primary-hover);
+}
+
+/* Info Cards */
+.info-card {
+    background: var(--color-bg-secondary);
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    margin: var(--spacing-lg) 0;
+    border-left: 4px solid var(--color-border);
+}
+
+.info-card h3 {
+    margin-top: 0;
+    margin-bottom: var(--spacing-md);
+    color: var(--color-text-primary);
+}
+
+.info-card ul {
+    margin: var(--spacing-sm) 0;
+    padding-left: var(--spacing-lg);
+}
+
+.info-card li {
+    color: var(--color-text-secondary);
+    margin: var(--spacing-xs) 0;
+    line-height: 1.7;
+}
+
+.info-card-primary {
+    background: var(--color-primary-light);
+    border-left-color: var(--color-primary);
+}
+
+.info-card-success {
+    background: var(--color-success-light);
+    border-left-color: var(--color-success);
+}
+
+.info-card-warning {
+    background: var(--color-warning-light);
+    border-left-color: var(--color-warning);
+}
+
+/* Numbered Lists */
+.numbered-list {
+    counter-reset: step-counter;
+    list-style: none;
+    padding-left: 0;
+}
+
+.numbered-list > li {
+    counter-increment: step-counter;
+    margin: var(--spacing-lg) 0;
+    padding-left: 3rem;
+    position: relative;
+}
+
+.numbered-list > li::before {
+    content: counter(step-counter);
+    position: absolute;
+    left: 0;
+    top: 0;
+    background: var(--color-primary);
+    color: white;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: var(--font-size-lg);
+}
+
+.numbered-list > li strong {
+    display: block;
+    color: var(--color-text-primary);
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--spacing-xs);
+}
+
+.numbered-list > li p {
+    margin: var(--spacing-xs) 0;
+}
+
+/* Step-by-Step Process */
+.step-by-step {
+    margin: var(--spacing-lg) 0;
+}
+
+.step-item {
+    display: flex;
+    gap: var(--spacing-md);
+    margin: var(--spacing-md) 0;
+    padding: var(--spacing-md);
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border-light);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.step-item:hover {
+    transform: translateX(4px);
+    box-shadow: var(--shadow-md);
+}
+
+.step-number {
+    flex-shrink: 0;
+    width: 3rem;
+    height: 3rem;
+    background: var(--color-primary);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: var(--font-size-xl);
+}
+
+.step-content h4 {
+    margin: 0 0 var(--spacing-xs) 0;
+    color: var(--color-text-primary);
+}
+
+.step-content p {
+    margin: 0;
+    color: var(--color-text-secondary);
+}
+
+/* Role Cards */
+.role-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--spacing-lg);
+    margin: var(--spacing-lg) 0;
+}
+
+.role-card {
+    background: var(--color-bg-secondary);
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    border: 2px solid var(--color-border);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.role-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+}
+
+.role-card-pioneer {
+    border-color: var(--color-primary);
+}
+
+.role-card-technician {
+    border-color: var(--color-warning);
+}
+
+.role-card-seeker {
+    border-color: var(--color-info);
+}
+
+.role-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-md);
+    border-bottom: 2px solid var(--color-border-light);
+}
+
+.role-icon-large {
+    font-size: 3rem;
+}
+
+.role-header h3 {
+    margin: 0;
+    font-size: var(--font-size-xl);
+}
+
+.role-tagline {
+    color: var(--color-text-muted);
+    font-style: italic;
+    margin-bottom: var(--spacing-md);
+}
+
+.role-details h4 {
+    color: var(--color-primary);
+    margin-top: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+}
+
+.role-details ul {
+    margin: var(--spacing-sm) 0;
+    padding-left: var(--spacing-lg);
+}
+
+.role-details li {
+    margin: var(--spacing-xs) 0;
+    line-height: 1.6;
+}
+
+/* Footer Section */
+.guide-footer {
+    text-align: center;
+    padding: var(--spacing-xl);
+    background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-bg-secondary) 100%);
+    border-radius: var(--radius-lg);
+    margin-top: var(--spacing-xl);
+}
+
+.footer-text {
+    font-size: var(--font-size-lg);
+    max-width: 800px;
+    margin: 0 auto var(--spacing-xl) auto;
+}
+
+.footer-actions {
+    display: flex;
+    gap: var(--spacing-md);
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: var(--spacing-xl) 0;
+}
+
+.btn-large {
+    padding: 0.875rem 2rem;
+    font-size: var(--font-size-lg);
+}
+
+.footer-quote {
+    margin-top: var(--spacing-xl);
+    padding: var(--spacing-lg);
+    background: white;
+    border-radius: var(--radius-lg);
+    border-left: 4px solid var(--color-primary);
+}
+
+.footer-quote blockquote {
+    margin: 0;
+    font-size: var(--font-size-lg);
+    font-style: italic;
+    color: var(--color-text-secondary);
+}
+
+/* How to Play Page Responsive Design */
+@media (max-width: 768px) {
+    .guide-container {
+        padding: var(--spacing-md);
+    }
+
+    .guide-content {
+        padding: var(--spacing-lg);
+    }
+
+    .guide-main-title {
+        font-size: 2rem;
+    }
+
+    .guide-main-subtitle {
+        font-size: var(--font-size-base);
+    }
+
+    .section-title {
+        font-size: var(--font-size-xl);
+    }
+
+    .role-cards-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .footer-actions {
+        flex-direction: column;
+    }
+
+    .btn-large {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .guide-content {
+        padding: var(--spacing-md);
+    }
+
+    .guide-main-title {
+        font-size: 1.5rem;
+    }
+
+    .role-icon-large {
+        font-size: 2rem;
+    }
+
+    .step-item {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .step-number {
+        margin: 0 auto;
+    }
+
+    .numbered-list > li {
+        padding-left: 2.5rem;
+    }
+
+    .numbered-list > li::before {
+        width: 1.5rem;
+        height: 1.5rem;
+        font-size: var(--font-size-base);
+    }
+}
+
+/* ============================================================================
+   DARK THEME SPECIFIC ADJUSTMENTS
+   ============================================================================ */
+
+/* Dark theme adjustments for registration page */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .registration-page .section-header,
+    :root:not([data-theme="light"]) .registration-page .form-container {
+        background: rgba(26, 21, 17, 0.95);
+        backdrop-filter: blur(10px);
+    }
+}
+
+[data-theme="dark"] .registration-page .section-header,
+[data-theme="dark"] .registration-page .form-container {
+    background: rgba(26, 21, 17, 0.95);
+    backdrop-filter: blur(10px);
+}
+
+/* Dark theme modal backdrop */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .modal {
+        background-color: rgba(0, 0, 0, 0.7);
+    }
+}
+
+[data-theme="dark"] .modal {
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+/* Footer quote on How to Play page - use dark background */
+.how-to-play-page .footer-quote {
+    background: var(--color-bg-tertiary);
 }

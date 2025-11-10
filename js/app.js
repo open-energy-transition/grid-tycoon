@@ -34,13 +34,14 @@ class GridTycoonApp {
 async init() {
     try {
         console.log('Initializing Grid Tycoon application...');
-        
+
         await this.initializeComponents();
         this.setupEventHandlers();
+        this.initializeTheme();
         this.checkSavedSession();
-        
+
         console.log('Grid Tycoon application ready');
-        
+
     } catch (error) {
         console.error('Application initialization failed:', error);
         this.showStatus('error', `Initialization failed: ${error.message}. Please refresh the page.`);
@@ -106,14 +107,24 @@ setupEventHandlers() {
             });
         });
     }
-    
+
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             this.closeModal();
         }
     });
-    
+
     console.log('Event handlers configured');
+}
+
+// ================================
+// THEME MANAGEMENT
+// ================================
+
+initializeTheme() {
+    // Force light theme for all pages except How to Play (handled by CSS)
+    document.documentElement.setAttribute('data-theme', 'light');
+    console.log('Theme initialized: light mode');
 }
 
 checkSavedSession() {
@@ -476,6 +487,9 @@ async showParticipantDashboard() {
                         <button class="btn btn-success" onclick="app.showMappingInterface()">
                             Start Mapping
                         </button>
+                        <button class="btn btn-info" onclick="app.launchJitsiMeeting()">
+                            📹 Join Meeting Room
+                        </button>
                         <button class="btn btn-secondary" onclick="app.refreshParticipantStatus()">
                             Refresh Status
                         </button>
@@ -562,7 +576,8 @@ async showMappingInterface() {
     // Update header with navigation buttons
     this.updateHeaderNavigation([
         { label: 'Team', class: 'btn-primary', onclick: 'app.showTeammatesModal()' },
-        { label: 'Refresh', class: 'btn-info', onclick: 'app.refreshTerritories()' },
+        { label: '📹 Meeting', class: 'btn-info', onclick: 'app.launchJitsiMeeting()' },
+        { label: 'Refresh', class: 'btn-secondary', onclick: 'app.refreshTerritories()' },
         { label: 'Logout', class: 'btn-warning', onclick: 'app.logout()' }
     ]);
 
@@ -1033,6 +1048,30 @@ getStatusText(status) {
 }
 
 // ================================
+// JITSI MEETING INTEGRATION
+// ================================
+
+launchJitsiMeeting() {
+    if (!this.currentUser || !this.currentUser.sessionId) {
+        this.showStatus('error', 'No active session found');
+        return;
+    }
+
+    const sessionId = this.currentUser.sessionId;
+    const jitsiUrl = `https://meet.jit.si/${sessionId}`;
+
+    console.log(`Launching Jitsi meeting for session: ${sessionId}`);
+
+    // Open meeting in new tab
+    const meetingWindow = window.open(jitsiUrl, '_blank', 'noopener,noreferrer');
+
+    if (meetingWindow) {
+        this.showStatus('success', `Opening meeting room for session ${sessionId}...`);
+    }
+    // Note: No error shown if popup is blocked - browser will handle it
+}
+
+// ================================
 // REFRESH METHODS
 // ================================
 
@@ -1109,7 +1148,7 @@ returnToLanding() {
     });
 
     // Hide all sections and header
-    const sections = ['registrationSection', 'coordinatorSection', 'teamSection', 'mappingSection'];
+    const sections = ['registrationSection', 'coordinatorSection', 'teamSection', 'mappingSection', 'howToPlaySection'];
     sections.forEach(id => {
         const element = document.getElementById(id);
         if (element) element.style.display = 'none';
@@ -1152,6 +1191,23 @@ showRegistrationFromLanding() {
         if (firstNameInput) {
             firstNameInput.focus();
         }
+    }
+}
+
+showHowToPlay() {
+    const landingSection = document.getElementById('landingSection');
+    const howToPlaySection = document.getElementById('howToPlaySection');
+
+    if (landingSection) {
+        landingSection.style.display = 'none';
+    }
+
+    if (howToPlaySection) {
+        howToPlaySection.style.display = 'block';
+        this.currentSection = 'howToPlay';
+
+        // Scroll to top
+        window.scrollTo(0, 0);
     }
 }
 
@@ -1214,7 +1270,7 @@ showResourcesModal() {
 }
 
 showSection(sectionId, content = null) {
-    const sections = ['landingSection', 'registrationSection', 'coordinatorSection', 'teamSection', 'mappingSection'];
+    const sections = ['landingSection', 'registrationSection', 'coordinatorSection', 'teamSection', 'mappingSection', 'howToPlaySection'];
     sections.forEach(id => {
         const element = document.getElementById(id);
         if (element) {
@@ -1377,6 +1433,9 @@ renderCoordinatorDashboard({ sessionId, user, participants, progress, teamFormat
 
                 <button class="btn btn-primary" onclick="app.viewParticipants()" ${participants.length === 0 ? 'disabled' : ''}>
                     View Participants (${participants.length})
+                </button>
+                <button class="btn btn-info" onclick="app.launchJitsiMeeting()">
+                    📹 Join Meeting Room
                 </button>
                 <button class="btn btn-success" onclick="app.setupCompleteSession()" ${!teamFormationInfo.canFormTeams ? 'disabled' : ''}>
                     Setup Teams & Territories

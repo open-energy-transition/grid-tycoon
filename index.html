@@ -24,6 +24,7 @@
                 <span>Grid Tycoon</span>
             </div>
             <div class="nav-links">
+                <a href="#how-to-play" class="nav-link" onclick="app.showHowToPlay(); return false;">How to Play</a>
                 <a href="#resources" class="nav-link" onclick="app.showResourcesModal(); return false;">Resources</a>
                 <a href="https://mapyourgrid.org" target="_blank" rel="noopener noreferrer" class="nav-link">MapYourGrid</a>
                 <a href="#get-started" class="nav-link nav-link-primary" onclick="app.showRegistrationFromLanding(); return false;">Get Started</a>
@@ -35,6 +36,222 @@
             <img src="media/logo/logo.png" alt="Grid Tycoon Logo" class="landing-hero-logo">
             <h1 class="landing-title">Master India's Power Grid</h1>
             <p class="landing-subtitle">Collaborative mapping through OpenStreetMap</p>
+        </div>
+    </section>
+
+    <!-- How to Play Page (Full Screen) -->
+    <section id="howToPlaySection" class="how-to-play-page" style="display: none;">
+        <!-- Minimal Navigation Header -->
+        <nav class="landing-nav">
+            <div class="nav-brand" style="cursor: pointer;" onclick="app.returnToLanding()">
+                <img src="media/logo/logo.png" alt="Grid Tycoon Logo" class="nav-logo">
+                <span>Grid Tycoon</span>
+            </div>
+        </nav>
+
+        <!-- Scrollable Content -->
+        <div class="guide-container">
+            <div class="guide-content">
+                <h1 class="guide-main-title">How to Play Grid Tycoon</h1>
+                <p class="guide-main-subtitle">A comprehensive guide to collaborative power grid mapping across India</p>
+
+                <!-- Section 1: What is Grid Tycoon? -->
+                <section class="guide-section">
+                    <h2 class="section-title">What is Grid Tycoon?</h2>
+                    <p>Grid Tycoon transforms the serious work of infrastructure mapping into an engaging collaborative experience. Teams of mappers work together to document India's electrical grid on OpenStreetMap, creating valuable open data that serves communities, planners, and researchers.</p>
+
+                    <div class="info-card info-card-primary">
+                        <h3>Why Map the Power Grid?</h3>
+                        <ul>
+                            <li><strong>Emergency Response:</strong> Better maps help first responders during disasters and outages</li>
+                            <li><strong>Urban Planning:</strong> Accurate infrastructure data supports sustainable development</li>
+                            <li><strong>Research:</strong> Open data enables energy studies and infrastructure analysis</li>
+                            <li><strong>Community:</strong> Local knowledge combined with satellite imagery creates comprehensive maps</li>
+                        </ul>
+                    </div>
+
+                    <p>Grid Tycoon gamifies this process by organizing participants into teams, distributing territories across India's 36 states and union territories, and tracking progress through leaderboards and statistics.</p>
+                </section>
+
+                <!-- Section 2: Getting Started -->
+                <section class="guide-section">
+                    <h2 class="section-title">Getting Started</h2>
+
+                    <h3>Prerequisites</h3>
+                    <ol class="numbered-list">
+                        <li>
+                            <strong>OpenStreetMap Account</strong>
+                            <p>Create a free account at <a href="https://www.openstreetmap.org" target="_blank" rel="noopener noreferrer">openstreetmap.org</a>. You'll need your OSM username to register for Grid Tycoon.</p>
+                        </li>
+                        <li>
+                            <strong>JOSM Editor</strong>
+                            <p>Download and install JOSM from <a href="https://josm.openstreetmap.de" target="_blank" rel="noopener noreferrer">josm.openstreetmap.de</a>. JOSM is the preferred editor for Grid Tycoon because it handles large areas efficiently and supports advanced mapping features.</p>
+                        </li>
+                        <li>
+                            <strong>Session ID</strong>
+                            <p>Get a session ID from your coordinator. This unique code connects you to your mapping session.</p>
+                        </li>
+                    </ol>
+
+                    <h3>Registration Process</h3>
+                    <div class="step-by-step">
+                        <div class="step-item">
+                            <div class="step-number">1</div>
+                            <div class="step-content">
+                                <h4>Visit Grid Tycoon</h4>
+                                <p>Navigate to the Grid Tycoon application and click "Get Started"</p>
+                            </div>
+                        </div>
+                        <div class="step-item">
+                            <div class="step-number">2</div>
+                            <div class="step-content">
+                                <h4>Enter Your Details</h4>
+                                <p>Provide your first name, OpenStreetMap username, and session ID</p>
+                            </div>
+                        </div>
+                        <div class="step-item">
+                            <div class="step-number">3</div>
+                            <div class="step-content">
+                                <h4>Wait for Team Assignment</h4>
+                                <p>The coordinator will form teams once enough participants have registered</p>
+                            </div>
+                        </div>
+                        <div class="step-item">
+                            <div class="step-number">4</div>
+                            <div class="step-content">
+                                <h4>Start Mapping!</h4>
+                                <p>Once assigned, you'll see your team dashboard and territories to map</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Section 3: Understanding Roles -->
+                <section class="guide-section">
+                    <h2 class="section-title">Team Roles Explained</h2>
+                    <p>Each team consists of exactly three members, each with a specialized role. This division of labor ensures comprehensive, accurate mapping.</p>
+
+                    <div class="role-cards-grid">
+                        <div class="role-card role-card-pioneer">
+                            <div class="role-header">
+                                <span class="role-icon-large">🗺️</span>
+                                <h3>Pioneer</h3>
+                            </div>
+                            <p class="role-tagline">The Trailblazer</p>
+                            <div class="role-details">
+                                <h4>Primary Responsibilities:</h4>
+                                <ul>
+                                    <li>Trace power lines from satellite imagery</li>
+                                    <li>Identify and map major substations</li>
+                                    <li>Add basic tags to infrastructure features</li>
+                                    <li>Cover large areas quickly to establish base map</li>
+                                </ul>
+
+                                <h4>Key Skills:</h4>
+                                <ul>
+                                    <li>Satellite imagery interpretation</li>
+                                    <li>Line tracing accuracy</li>
+                                    <li>Basic OSM tagging knowledge</li>
+                                </ul>
+
+                                <h4>Tips for Success:</h4>
+                                <ul>
+                                    <li>Start with clearly visible transmission lines</li>
+                                    <li>Use imagery with the best resolution</li>
+                                    <li>Don't worry about perfect accuracy - Technician will refine</li>
+                                    <li>Mark uncertain features for team review</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="role-card role-card-technician">
+                            <div class="role-header">
+                                <span class="role-icon-large">⚡</span>
+                                <h3>Technician</h3>
+                            </div>
+                            <p class="role-tagline">The Precision Expert</p>
+                            <div class="role-details">
+                                <h4>Primary Responsibilities:</h4>
+                                <ul>
+                                    <li>Add detailed technical tags (voltage, frequency, operator)</li>
+                                    <li>Verify and correct power line classifications</li>
+                                    <li>Ensure naming consistency across features</li>
+                                    <li>Cross-reference with external data sources</li>
+                                </ul>
+
+                                <h4>Key Skills:</h4>
+                                <ul>
+                                    <li>Understanding of power infrastructure terminology</li>
+                                    <li>Attention to detail</li>
+                                    <li>Knowledge of OSM tagging standards</li>
+                                </ul>
+
+                                <h4>Tips for Success:</h4>
+                                <ul>
+                                    <li>Consult the OSM Wiki for power=* tagging standards</li>
+                                    <li>Use consistent naming conventions</li>
+                                    <li>Document voltage information when visible</li>
+                                    <li>Add references (ref=*) for officially numbered features</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="role-card role-card-seeker">
+                            <div class="role-header">
+                                <span class="role-icon-large">🔍</span>
+                                <h3>Seeker</h3>
+                            </div>
+                            <p class="role-tagline">The Detective</p>
+                            <div class="role-details">
+                                <h4>Primary Responsibilities:</h4>
+                                <ul>
+                                    <li>Find infrastructure missed in initial mapping</li>
+                                    <li>Verify existing features against multiple sources</li>
+                                    <li>Check industrial areas for substations</li>
+                                    <li>Research features that are difficult to identify</li>
+                                </ul>
+
+                                <h4>Key Skills:</h4>
+                                <ul>
+                                    <li>Research and investigation</li>
+                                    <li>Pattern recognition</li>
+                                    <li>Critical thinking</li>
+                                </ul>
+
+                                <h4>Tips for Success:</h4>
+                                <ul>
+                                    <li>Compare multiple imagery sources</li>
+                                    <li>Look for telltale signs: cleared corridors, tower shadows</li>
+                                    <li>Check near industrial zones and power plants</li>
+                                    <li>Use Osmose QA tool to find issues</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-card info-card-success">
+                        <h3>Team Collaboration is Key</h3>
+                        <p>While each role has specific responsibilities, successful teams communicate and support each other. Pioneers can flag features for Technicians to detail, Seekers can guide Pioneers to missed areas, and Technicians can educate others on tagging standards.</p>
+                    </div>
+                </section>
+
+                <!-- Section 4: Ready to Start -->
+                <section class="guide-section guide-footer">
+                    <h2 class="section-title-centered">Ready to Map India's Power Grid?</h2>
+                    <p class="footer-text">You now have everything you need to become an effective Grid Tycoon mapper. Join a session, collaborate with your team, and help build the most comprehensive open map of India's electrical infrastructure!</p>
+
+                    <div class="footer-actions">
+                        <button class="btn btn-primary btn-large" onclick="app.showRegistrationFromLanding()">Get Started Now</button>
+                        <a href="https://mapyourgrid.org" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-large">Learn More About MapYourGrid</a>
+                    </div>
+
+                    <div class="footer-quote">
+                        <blockquote>
+                            "Every power line you map contributes to open data that serves communities, researchers, and emergency responders across India. Thank you for being part of this collaborative effort!"
+                        </blockquote>
+                    </div>
+                </section>
+            </div>
         </div>
     </section>
 
